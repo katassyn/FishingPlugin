@@ -13,6 +13,7 @@ import org.bukkit.Bukkit;
 import org.maks.fishingPlugin.model.Category;
 import org.maks.fishingPlugin.model.LootEntry;
 import org.maks.fishingPlugin.util.ItemSerialization;
+import org.maks.fishingPlugin.util.WeightedPicker;
 
 /**
  * Grants rolled loot to the player.
@@ -22,11 +23,13 @@ public class Awarder {
   private final JavaPlugin plugin;
   private final NamespacedKey keyKey;
   private final NamespacedKey weightKey;
+  private final NamespacedKey qualityKey;
 
   public Awarder(JavaPlugin plugin) {
     this.plugin = plugin;
     this.keyKey = new NamespacedKey(plugin, "loot-key");
     this.weightKey = new NamespacedKey(plugin, "weight-g");
+    this.qualityKey = new NamespacedKey(plugin, "quality");
   }
 
   /** Result of awarding loot. */
@@ -59,6 +62,8 @@ public class Awarder {
       if (loot.category() == Category.FISH || loot.category() == Category.FISH_PREMIUM) {
         weight = ThreadLocalRandom.current().nextDouble(loot.minWeightG(), loot.maxWeightG());
         pdc.set(weightKey, PersistentDataType.DOUBLE, weight);
+        org.maks.fishingPlugin.model.Quality quality = pickQuality(loot);
+        pdc.set(qualityKey, PersistentDataType.STRING, quality.name());
         meta.setDisplayName(loot.key());
       }
       item.setItemMeta(meta);
@@ -68,5 +73,22 @@ public class Awarder {
       Bukkit.broadcastMessage(player.getName() + " obtained " + loot.key() + "!");
     }
     return new AwardResult(weight, item);
+  }
+
+  private org.maks.fishingPlugin.model.Quality pickQuality(LootEntry loot) {
+    java.util.List<org.maks.fishingPlugin.model.Quality> quals = java.util.List.of(
+        org.maks.fishingPlugin.model.Quality.S,
+        org.maks.fishingPlugin.model.Quality.A,
+        org.maks.fishingPlugin.model.Quality.B,
+        org.maks.fishingPlugin.model.Quality.C);
+    WeightedPicker<org.maks.fishingPlugin.model.Quality> picker = new WeightedPicker<>(quals, q -> {
+      return switch (q) {
+        case S -> loot.qualitySWeight();
+        case A -> loot.qualityAWeight();
+        case B -> loot.qualityBWeight();
+        case C -> loot.qualityCWeight();
+      };
+    });
+    return picker.pick(ThreadLocalRandom.current());
   }
 }
