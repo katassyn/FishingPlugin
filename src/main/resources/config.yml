@@ -1,0 +1,29 @@
+player_level_requirement: 80
+
+economy:
+  currency_symbol: "$"
+  quicksell_tax: 0.0
+  global_multiplier: 1.0
+
+warps:
+  - key: oceanic_pier
+    type: COMMAND
+    command: "warp oceanic_pier %player%"
+  - key: sunken_grotto
+    type: COORDS
+    world: world
+    x: 123.5
+    y: 64
+    z: -210.5
+
+rare_weight_scaling:
+  RUNE:
+    mode: EXP
+    beta: 0.007
+  TREASURE:
+    mode: EXP
+    beta: 0.006
+  FISH_PREMIUM:
+    mode: POLY
+    alpha: 0.015
+    k: 0.9
