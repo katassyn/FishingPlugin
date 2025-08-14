@@ -27,7 +27,10 @@ import org.maks.fishingPlugin.service.LootService;
 import org.maks.fishingPlugin.service.QteService;
 import org.maks.fishingPlugin.service.QuestChainService;
 import org.maks.fishingPlugin.service.QuickSellService;
-import org.maks.fishingPlugin.service.TeleportService;
+import org.maks.fishingPlugin.gui.MainMenu;
+import org.maks.fishingPlugin.gui.QuickSellMenu;
+import org.maks.fishingPlugin.gui.RodShopMenu;
+import org.maks.fishingPlugin.gui.QuestMenu;
 import net.milkbowl.vault.economy.Economy;
 
 public final class FishingPlugin extends JavaPlugin {
@@ -36,7 +39,6 @@ public final class FishingPlugin extends JavaPlugin {
     private LootService lootService;
     private Awarder awarder;
     private QuickSellService quickSellService;
-    private TeleportService teleportService;
     private QteService qteService;
     private AntiCheatService antiCheatService;
     private QuestChainService questService;
@@ -118,7 +120,6 @@ public final class FishingPlugin extends JavaPlugin {
         tax = Double.parseDouble(params.getOrDefault("quicksell_tax", String.valueOf(tax)));
         symbol = params.getOrDefault("currency_symbol", symbol);
         this.quickSellService = new QuickSellService(this, lootService, economy, multiplier, tax, symbol);
-        this.teleportService = new TeleportService(this);
         this.antiCheatService = new AntiCheatService();
         this.qteService = new QteService(antiCheatService);
         this.questService = new QuestChainService(economy);
@@ -131,8 +132,12 @@ public final class FishingPlugin extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(
             new FishingListener(lootService, awarder, levelService, qteService, questService, requiredPlayerLevel), this);
         Bukkit.getPluginManager().registerEvents(new QteListener(qteService), this);
-        getCommand("fishing").setExecutor(
-            new FishingCommand(quickSellService, teleportService, questService, levelService, requiredPlayerLevel));
+
+        QuickSellMenu quickSellMenu = new QuickSellMenu(quickSellService);
+        RodShopMenu rodShopMenu = new RodShopMenu();
+        QuestMenu questMenu = new QuestMenu(questService);
+        MainMenu mainMenu = new MainMenu(quickSellMenu, rodShopMenu, questMenu);
+        getCommand("fishing").setExecutor(new FishingCommand(mainMenu, requiredPlayerLevel));
 
         getLogger().info("FishingPlugin enabled");
     }
