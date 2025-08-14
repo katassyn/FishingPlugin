@@ -14,6 +14,7 @@ import org.maks.fishingPlugin.model.Category;
 import org.maks.fishingPlugin.model.LootEntry;
 import org.maks.fishingPlugin.util.ItemSerialization;
 import org.maks.fishingPlugin.util.WeightedPicker;
+import org.maks.fishingPlugin.FishingPlugin;
 
 /**
  * Grants rolled loot to the player.
@@ -47,6 +48,18 @@ public class Awarder {
       item = ItemSerialization.fromBase64(loot.itemBase64());
     } else if (loot.category() == Category.FISH || loot.category() == Category.FISH_PREMIUM) {
       item = new ItemStack(Material.COD);
+    } else if (loot.category() == Category.FISHERMAN_CHEST) {
+      if (((FishingPlugin) plugin).hasEliteLootbox()) {
+        String cmd = "lootbox give " + player.getName() + " " + loot.key();
+        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
+      } else {
+        plugin.getLogger().warning("EliteLootbox not found; cannot give crate " + loot.key());
+      }
+      player.sendMessage("You obtained: " + loot.key());
+      if (loot.broadcast()) {
+        Bukkit.broadcastMessage(player.getName() + " obtained " + loot.key() + "!");
+      }
+      return new AwardResult(0, null);
     }
 
     if (item == null) {
