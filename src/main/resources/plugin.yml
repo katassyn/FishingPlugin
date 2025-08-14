@@ -1,4 +1,9 @@
 name: FishingPlugin
-version: '1.0-SNAPSHOT'
 main: org.maks.fishingPlugin.FishingPlugin
-api-version: '1.20'
+version: 0.0.1
+api-version: 1.20
+commands:
+  fishing:
+    description: Fishing commands
+    usage: /fishing sell|warp <key>|quest
+    permission: fishing.use
