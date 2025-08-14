@@ -5,5 +5,9 @@ api-version: 1.20
 commands:
   fishing:
     description: Fishing commands
-    usage: /fishing sell|warp <key>|quest
+    usage: /fishing
     permission: fishing.use
+permissions:
+  fishing.admin:
+    description: Allows editing loot and quests
+    default: op

@@ -31,6 +31,31 @@ public class LootService {
     byKey.put(entry.key(), entry);
   }
 
+  /** Replace existing entry by key. */
+  public void updateEntry(LootEntry entry) {
+    for (int i = 0; i < entries.size(); i++) {
+      if (entries.get(i).key().equals(entry.key())) {
+        entries.set(i, entry);
+        byKey.put(entry.key(), entry);
+        return;
+      }
+    }
+    addEntry(entry);
+  }
+
+  /** Expose registered entries. */
+  public List<LootEntry> getEntries() {
+    return List.copyOf(entries);
+  }
+
+  public ScaleConf getScale(Category cat) {
+    return scaling.get(cat);
+  }
+
+  public void setScale(Category cat, ScaleConf conf) {
+    scaling.put(cat, conf);
+  }
+
   /**
    * Rolls a random loot entry based on rod level.
    */

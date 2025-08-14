@@ -30,5 +30,17 @@ public class QuestRepo {
       return list;
     }
   }
+
+  /** Insert or update quest stage. */
+  public void upsert(QuestStage stage) throws SQLException {
+    String sql = "MERGE INTO quest KEY(stage) VALUES (?,?,?)";
+    try (Connection con = dataSource.getConnection();
+         PreparedStatement ps = con.prepareStatement(sql)) {
+      ps.setInt(1, stage.stage());
+      ps.setInt(2, stage.goal());
+      ps.setDouble(3, stage.reward());
+      ps.executeUpdate();
+    }
+  }
 }
 

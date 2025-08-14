@@ -31,6 +31,8 @@ import org.maks.fishingPlugin.gui.MainMenu;
 import org.maks.fishingPlugin.gui.QuickSellMenu;
 import org.maks.fishingPlugin.gui.RodShopMenu;
 import org.maks.fishingPlugin.gui.QuestMenu;
+import org.maks.fishingPlugin.gui.AdminLootEditorMenu;
+import org.maks.fishingPlugin.gui.AdminQuestEditorMenu;
 import net.milkbowl.vault.economy.Economy;
 
 public final class FishingPlugin extends JavaPlugin {
@@ -97,6 +99,17 @@ public final class FishingPlugin extends JavaPlugin {
                 }
             }
         }
+        for (Category cat : Category.values()) {
+            String mKey = "scale_mode_" + cat.name();
+            if (params.containsKey(mKey)) {
+                try {
+                    ScaleMode mode = ScaleMode.valueOf(params.get(mKey));
+                    double a = Double.parseDouble(params.getOrDefault("scale_a_" + cat.name(), "0"));
+                    double k = Double.parseDouble(params.getOrDefault("scale_k_" + cat.name(), "0"));
+                    scaling.put(cat, new ScaleConf(mode, a, k));
+                } catch (IllegalArgumentException ignored) {}
+            }
+        }
         this.lootService = new LootService(scaling);
         try {
             for (LootEntry entry : lootRepo.findAll()) {
@@ -136,8 +149,10 @@ public final class FishingPlugin extends JavaPlugin {
         QuickSellMenu quickSellMenu = new QuickSellMenu(quickSellService);
         RodShopMenu rodShopMenu = new RodShopMenu();
         QuestMenu questMenu = new QuestMenu(questService);
+        AdminQuestEditorMenu adminQuestMenu = new AdminQuestEditorMenu(questService, questRepo);
+        AdminLootEditorMenu adminMenu = new AdminLootEditorMenu(lootService, lootRepo, paramRepo, adminQuestMenu);
         MainMenu mainMenu = new MainMenu(quickSellMenu, rodShopMenu, questMenu);
-        getCommand("fishing").setExecutor(new FishingCommand(mainMenu, requiredPlayerLevel));
+        getCommand("fishing").setExecutor(new FishingCommand(mainMenu, adminMenu, requiredPlayerLevel));
 
         getLogger().info("FishingPlugin enabled");
     }
