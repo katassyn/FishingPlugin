@@ -59,7 +59,7 @@ public class AdminLootEditorMenu {
     }
     String key = "hand_" + UUID.randomUUID();
     LootEntry entry = new LootEntry(key, Category.COMMON, 1.0, 0, false, 0.0,
-        0.0, 1.0, 100.0, 200.0, ItemSerialization.toBase64(item));
+        0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 100.0, 200.0, ItemSerialization.toBase64(item));
     lootService.addEntry(entry);
     try {
       lootRepo.upsert(entry);
@@ -90,7 +90,7 @@ public class AdminLootEditorMenu {
   private void adjustWeight(Player player, LootEntry e, double delta) {
     double newWeight = Math.max(0.0, e.baseWeight() + delta);
     LootEntry updated = new LootEntry(e.key(), e.category(), newWeight, e.minRodLevel(), e.broadcast(),
-        e.priceBase(), e.pricePerKg(), e.payoutMultiplier(), e.minWeightG(), e.maxWeightG(), e.itemBase64());
+        e.priceBase(), e.pricePerKg(), e.payoutMultiplier(), e.qualitySWeight(), e.qualityAWeight(), e.qualityBWeight(), e.qualityCWeight(), e.minWeightG(), e.maxWeightG(), e.itemBase64());
     lootService.updateEntry(updated);
     try {
       lootRepo.upsert(updated);

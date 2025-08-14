@@ -21,7 +21,8 @@ public class LootRepo {
 
   public List<LootEntry> findAll() throws SQLException {
     String sql = "SELECT key, category, base_weight, min_rod_level, broadcast, " +
-        "price_base, price_per_kg, payout_multiplier, min_weight_g, max_weight_g, item_base64 FROM loot";
+        "price_base, price_per_kg, payout_multiplier, quality_s_weight, quality_a_weight, " +
+        "quality_b_weight, quality_c_weight, min_weight_g, max_weight_g, item_base64 FROM loot";
     try (Connection con = dataSource.getConnection();
          PreparedStatement ps = con.prepareStatement(sql);
          ResultSet rs = ps.executeQuery()) {
@@ -38,7 +39,11 @@ public class LootRepo {
             rs.getDouble(8),
             rs.getDouble(9),
             rs.getDouble(10),
-            rs.getString(11)
+            rs.getDouble(11),
+            rs.getDouble(12),
+            rs.getDouble(13),
+            rs.getDouble(14),
+            rs.getString(15)
         ));
       }
       return list;
@@ -48,7 +53,7 @@ public class LootRepo {
   /** Insert or update a loot entry. */
   public void upsert(LootEntry entry) throws SQLException {
     String sql =
-        "MERGE INTO loot KEY(key) VALUES (?,?,?,?,?,?,?,?,?,?,?)";
+        "MERGE INTO loot KEY(key) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
     try (Connection con = dataSource.getConnection();
          PreparedStatement ps = con.prepareStatement(sql)) {
       ps.setString(1, entry.key());
@@ -59,9 +64,13 @@ public class LootRepo {
       ps.setDouble(6, entry.priceBase());
       ps.setDouble(7, entry.pricePerKg());
       ps.setDouble(8, entry.payoutMultiplier());
-      ps.setDouble(9, entry.minWeightG());
-      ps.setDouble(10, entry.maxWeightG());
-      ps.setString(11, entry.itemBase64());
+      ps.setDouble(9, entry.qualitySWeight());
+      ps.setDouble(10, entry.qualityAWeight());
+      ps.setDouble(11, entry.qualityBWeight());
+      ps.setDouble(12, entry.qualityCWeight());
+      ps.setDouble(13, entry.minWeightG());
+      ps.setDouble(14, entry.maxWeightG());
+      ps.setString(15, entry.itemBase64());
       ps.executeUpdate();
     }
   }

@@ -13,6 +13,10 @@ public record LootEntry(
     double priceBase,
     double pricePerKg,
     double payoutMultiplier,
+    double qualitySWeight,
+    double qualityAWeight,
+    double qualityBWeight,
+    double qualityCWeight,
     double minWeightG,
     double maxWeightG,
     String itemBase64

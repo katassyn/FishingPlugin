@@ -20,6 +20,7 @@ public class QuickSellService {
   private final Economy economy;
   private final NamespacedKey keyKey;
   private final NamespacedKey weightKey;
+  private final NamespacedKey qualityKey;
   private final double globalMultiplier;
   private final double tax;
   private final String currencySymbol;
@@ -33,10 +34,19 @@ public class QuickSellService {
     this.currencySymbol = currencySymbol;
     this.keyKey = new NamespacedKey(plugin, "loot-key");
     this.weightKey = new NamespacedKey(plugin, "weight-g");
+    this.qualityKey = new NamespacedKey(plugin, "quality");
   }
 
-  /** Sell all fish items in the player's inventory. */
-  public double sellAll(Player player) {
+  public static String groupKey(String key, org.maks.fishingPlugin.model.Quality quality) {
+    return key + "|" + quality.name();
+  }
+
+  private double computePrice(LootEntry entry, double weight, int amount) {
+    return (entry.priceBase() + (weight / 1000.0) * entry.pricePerKg())
+        * entry.payoutMultiplier() * globalMultiplier * amount;
+  }
+
+  private double sell(Player player, java.util.function.Predicate<String> filter) {
     double total = 0;
     ItemStack[] contents = player.getInventory().getContents();
     for (ItemStack item : contents) {
@@ -46,14 +56,22 @@ public class QuickSellService {
       PersistentDataContainer pdc = meta.getPersistentDataContainer();
       String key = pdc.get(keyKey, PersistentDataType.STRING);
       Double weight = pdc.get(weightKey, PersistentDataType.DOUBLE);
-      if (key == null || weight == null) continue;
+      String qualStr = pdc.get(qualityKey, PersistentDataType.STRING);
+      if (key == null || weight == null || qualStr == null) continue;
       LootEntry entry = lootService.getEntry(key);
       if (entry == null) continue;
       if (entry.category() != Category.FISH && entry.category() != Category.FISH_PREMIUM) {
         continue;
       }
-      double price = (entry.priceBase() + (weight / 1000.0) * entry.pricePerKg())
-          * entry.payoutMultiplier() * globalMultiplier * item.getAmount();
+      org.maks.fishingPlugin.model.Quality q;
+      try {
+        q = org.maks.fishingPlugin.model.Quality.valueOf(qualStr);
+      } catch (IllegalArgumentException ex) {
+        continue;
+      }
+      String gk = groupKey(key, q);
+      if (!filter.test(gk)) continue;
+      double price = computePrice(entry, weight, item.getAmount());
       total += price;
       player.getInventory().removeItem(item);
     }
@@ -63,6 +81,69 @@ public class QuickSellService {
       return payout;
     }
     return 0;
+  }
+
+  /** Sell all fish items in the player's inventory. */
+  public double sellAll(Player player) {
+    return sell(player, k -> true);
+  }
+
+  /** Sell only items whose group keys are selected. */
+  public double sellSelected(Player player, java.util.Set<String> selected) {
+    return sell(player, selected::contains);
+  }
+
+  public org.maks.fishingPlugin.model.SellSummary summarize(Player player) {
+    java.util.Map<String, Mutable> map = new java.util.LinkedHashMap<>();
+    double total = 0;
+    ItemStack[] contents = player.getInventory().getContents();
+    for (ItemStack item : contents) {
+      if (item == null) continue;
+      ItemMeta meta = item.getItemMeta();
+      if (meta == null) continue;
+      PersistentDataContainer pdc = meta.getPersistentDataContainer();
+      String key = pdc.get(keyKey, PersistentDataType.STRING);
+      Double weight = pdc.get(weightKey, PersistentDataType.DOUBLE);
+      String qualStr = pdc.get(qualityKey, PersistentDataType.STRING);
+      if (key == null || weight == null || qualStr == null) continue;
+      LootEntry entry = lootService.getEntry(key);
+      if (entry == null) continue;
+      if (entry.category() != Category.FISH && entry.category() != Category.FISH_PREMIUM) {
+        continue;
+      }
+      org.maks.fishingPlugin.model.Quality q;
+      try {
+        q = org.maks.fishingPlugin.model.Quality.valueOf(qualStr);
+      } catch (IllegalArgumentException ex) {
+        continue;
+      }
+      double price = computePrice(entry, weight, item.getAmount()) * (1.0 - tax);
+      String gk = groupKey(key, q);
+      Mutable m = map.get(gk);
+      if (m == null) {
+        m = new Mutable(key, q);
+        map.put(gk, m);
+      }
+      m.amount += item.getAmount();
+      m.price += price;
+      total += price;
+    }
+    java.util.List<org.maks.fishingPlugin.model.SellSummary.Entry> entries = new java.util.ArrayList<>();
+    for (Mutable m : map.values()) {
+      entries.add(new org.maks.fishingPlugin.model.SellSummary.Entry(m.key, m.quality, m.amount, m.price));
+    }
+    return new org.maks.fishingPlugin.model.SellSummary(entries, total);
+  }
+
+  private static class Mutable {
+    final String key;
+    final org.maks.fishingPlugin.model.Quality quality;
+    int amount;
+    double price;
+    Mutable(String key, org.maks.fishingPlugin.model.Quality quality) {
+      this.key = key;
+      this.quality = quality;
+    }
   }
 
   public String currencySymbol() {

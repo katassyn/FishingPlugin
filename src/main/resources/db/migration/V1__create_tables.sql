@@ -11,12 +11,16 @@ CREATE TABLE IF NOT EXISTS loot (
     min_rod_level INT NOT NULL,
     broadcast BOOLEAN NOT NULL,
     price_base DOUBLE NOT NULL,
-    price_per_kg DOUBLE NOT NULL,
-    payout_multiplier DOUBLE NOT NULL,
-    min_weight_g DOUBLE NOT NULL,
-    max_weight_g DOUBLE NOT NULL,
-    item_base64 TEXT
-);
+      price_per_kg DOUBLE NOT NULL,
+      payout_multiplier DOUBLE NOT NULL,
+      quality_s_weight DOUBLE NOT NULL,
+      quality_a_weight DOUBLE NOT NULL,
+      quality_b_weight DOUBLE NOT NULL,
+      quality_c_weight DOUBLE NOT NULL,
+      min_weight_g DOUBLE NOT NULL,
+      max_weight_g DOUBLE NOT NULL,
+      item_base64 TEXT
+  );
 
 CREATE TABLE IF NOT EXISTS quest (
     stage INT PRIMARY KEY,
