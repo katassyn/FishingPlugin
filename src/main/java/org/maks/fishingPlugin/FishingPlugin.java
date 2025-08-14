@@ -53,11 +53,18 @@ public final class FishingPlugin extends JavaPlugin {
     private QuestProgressRepo questProgressRepo;
     private ParamRepo paramRepo;
     private ProfileRepo profileRepo;
+    private boolean hasEliteLootbox;
+    private boolean hasWorldGuard;
+    private boolean hasCitizens;
 
     @Override
     public void onEnable() {
         this.levelService = new LevelService(this);
         saveDefaultConfig();
+        var pm = getServer().getPluginManager();
+        this.hasEliteLootbox = pm.getPlugin("EliteLootbox") != null;
+        this.hasWorldGuard = pm.getPlugin("WorldGuard") != null;
+        this.hasCitizens = pm.getPlugin("Citizens") != null;
 
         this.database = new Database("jdbc:h2:./data/fishing", "sa", "");
         DataSource ds = database.getDataSource();
@@ -152,6 +159,9 @@ public final class FishingPlugin extends JavaPlugin {
 
         this.qteService = new QteService(antiCheatService, clicks, windowMs, macroAction);
         this.questService = new QuestChainService(economy, questRepo, questProgressRepo, this);
+        if (pm.getPlugin("PlaceholderAPI") != null) {
+            new org.maks.fishingPlugin.integration.FishingExpansion(this).register();
+        }
 
         Bukkit.getPluginManager().registerEvents(
             new FishingListener(lootService, awarder, levelService, qteService, questService, requiredPlayerLevel,
@@ -175,6 +185,22 @@ public final class FishingPlugin extends JavaPlugin {
 
     public LootService getLootService() {
         return lootService;
+    }
+
+    public QuestChainService getQuestService() {
+        return questService;
+    }
+
+    public boolean hasEliteLootbox() {
+        return hasEliteLootbox;
+    }
+
+    public boolean hasWorldGuard() {
+        return hasWorldGuard;
+    }
+
+    public boolean hasCitizens() {
+        return hasCitizens;
     }
 
     @Override
