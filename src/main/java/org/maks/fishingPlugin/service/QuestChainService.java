@@ -20,10 +20,12 @@ public class QuestChainService {
 
   public QuestChainService(Economy economy) {
     this.economy = economy;
-    // sample stages
-    stages.add(new QuestStage(1, 5, 100));
-    stages.add(new QuestStage(2, 10, 200));
-    stages.add(new QuestStage(3, 15, 300));
+  }
+
+  /** Replace quest stages with definitions from storage. */
+  public void setStages(List<QuestStage> stages) {
+    this.stages.clear();
+    this.stages.addAll(stages);
   }
 
   /** Call when a player catches a fish. */

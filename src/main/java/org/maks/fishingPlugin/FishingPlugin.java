@@ -1,24 +1,33 @@
 package org.maks.fishingPlugin;
 
+import java.sql.SQLException;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.Map;
+import javax.sql.DataSource;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.flywaydb.core.Flyway;
+import org.maks.fishingPlugin.command.FishingCommand;
+import org.maks.fishingPlugin.data.Database;
+import org.maks.fishingPlugin.data.LootRepo;
+import org.maks.fishingPlugin.data.ParamRepo;
+import org.maks.fishingPlugin.data.ProfileRepo;
+import org.maks.fishingPlugin.data.QuestRepo;
 import org.maks.fishingPlugin.listener.FishingListener;
 import org.maks.fishingPlugin.listener.QteListener;
 import org.maks.fishingPlugin.model.Category;
 import org.maks.fishingPlugin.model.LootEntry;
 import org.maks.fishingPlugin.model.ScaleConf;
 import org.maks.fishingPlugin.model.ScaleMode;
+import org.maks.fishingPlugin.service.AntiCheatService;
+import org.maks.fishingPlugin.service.Awarder;
 import org.maks.fishingPlugin.service.LevelService;
 import org.maks.fishingPlugin.service.LootService;
-import org.maks.fishingPlugin.service.Awarder;
 import org.maks.fishingPlugin.service.QteService;
-import org.maks.fishingPlugin.service.AntiCheatService;
+import org.maks.fishingPlugin.service.QuestChainService;
 import org.maks.fishingPlugin.service.QuickSellService;
 import org.maks.fishingPlugin.service.TeleportService;
-import org.maks.fishingPlugin.service.QuestChainService;
-import org.maks.fishingPlugin.command.FishingCommand;
 import net.milkbowl.vault.economy.Economy;
 
 public final class FishingPlugin extends JavaPlugin {
@@ -33,13 +42,35 @@ public final class FishingPlugin extends JavaPlugin {
     private QuestChainService questService;
     private Economy economy;
     private int requiredPlayerLevel;
+    private Database database;
+    private LootRepo lootRepo;
+    private QuestRepo questRepo;
+    private ParamRepo paramRepo;
+    private ProfileRepo profileRepo;
 
     @Override
     public void onEnable() {
-        // Initialize services
         this.levelService = new LevelService(this);
         saveDefaultConfig();
-        this.requiredPlayerLevel = getConfig().getInt("player_level_requirement", 80);
+
+        this.database = new Database("jdbc:h2:./data/fishing", "sa", "");
+        DataSource ds = database.getDataSource();
+        Flyway.configure().dataSource(ds).load().migrate();
+        this.lootRepo = new LootRepo(ds);
+        this.questRepo = new QuestRepo(ds);
+        this.paramRepo = new ParamRepo(ds);
+        this.profileRepo = new ProfileRepo(ds);
+
+        Map<String, String> params = new HashMap<>();
+        try {
+            params = paramRepo.findAll();
+        } catch (SQLException e) {
+            getLogger().warning("Failed to load params: " + e.getMessage());
+        }
+
+        this.requiredPlayerLevel = Integer.parseInt(params.getOrDefault(
+            "player_level_requirement",
+            String.valueOf(getConfig().getInt("player_level_requirement", 80))));
 
         Map<Category, ScaleConf> scaling = new EnumMap<>(Category.class);
         var scaleSec = getConfig().getConfigurationSection("rare_weight_scaling");
@@ -53,7 +84,7 @@ public final class FishingPlugin extends JavaPlugin {
                         double param;
                         if (mode == ScaleMode.EXP) {
                             param = conf.getDouble("beta");
-                        } else { // POLY
+                        } else {
                             param = conf.getDouble("alpha");
                         }
                         double k = conf.getDouble("k", 0);
@@ -65,6 +96,13 @@ public final class FishingPlugin extends JavaPlugin {
             }
         }
         this.lootService = new LootService(scaling);
+        try {
+            for (LootEntry entry : lootRepo.findAll()) {
+                lootService.addEntry(entry);
+            }
+        } catch (SQLException e) {
+            getLogger().warning("Failed to load loot entries: " + e.getMessage());
+        }
         this.economy = Bukkit.getServicesManager().getRegistration(Economy.class).getProvider();
         this.awarder = new Awarder(this);
         var econSec = getConfig().getConfigurationSection("economy");
@@ -76,16 +114,19 @@ public final class FishingPlugin extends JavaPlugin {
             tax = econSec.getDouble("quicksell_tax", 0.0);
             symbol = econSec.getString("currency_symbol", "$");
         }
+        multiplier = Double.parseDouble(params.getOrDefault("global_multiplier", String.valueOf(multiplier)));
+        tax = Double.parseDouble(params.getOrDefault("quicksell_tax", String.valueOf(tax)));
+        symbol = params.getOrDefault("currency_symbol", symbol);
         this.quickSellService = new QuickSellService(this, lootService, economy, multiplier, tax, symbol);
         this.teleportService = new TeleportService(this);
         this.antiCheatService = new AntiCheatService();
         this.qteService = new QteService(antiCheatService);
         this.questService = new QuestChainService(economy);
-
-        // Sample loot entries to demonstrate rolling
-        lootService.addEntry(new LootEntry("fish_cod", Category.FISH, 9500, 0, false, 2, 8, 1, 500, 3000, null));
-        lootService.addEntry(new LootEntry("premium_shark", Category.FISH_PREMIUM, 350, 0, false, 10, 20, 1.5, 1000, 5000, null));
-        lootService.addEntry(new LootEntry("ancient_rune", Category.RUNE, 80, 0, true, 0, 0, 1, 0, 0, null));
+        try {
+            questService.setStages(questRepo.findAll());
+        } catch (SQLException e) {
+            getLogger().warning("Failed to load quest stages: " + e.getMessage());
+        }
 
         Bukkit.getPluginManager().registerEvents(
             new FishingListener(lootService, awarder, levelService, qteService, questService, requiredPlayerLevel), this);
@@ -106,6 +147,9 @@ public final class FishingPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (database != null) {
+            database.close();
+        }
         getLogger().info("FishingPlugin disabled");
     }
 }
