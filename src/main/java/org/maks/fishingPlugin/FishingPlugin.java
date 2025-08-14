@@ -14,6 +14,7 @@ import org.maks.fishingPlugin.data.LootRepo;
 import org.maks.fishingPlugin.data.ParamRepo;
 import org.maks.fishingPlugin.data.ProfileRepo;
 import org.maks.fishingPlugin.data.QuestRepo;
+import org.maks.fishingPlugin.data.QuestProgressRepo;
 import org.maks.fishingPlugin.listener.FishingListener;
 import org.maks.fishingPlugin.listener.QteListener;
 import org.maks.fishingPlugin.model.Category;
@@ -49,6 +50,7 @@ public final class FishingPlugin extends JavaPlugin {
     private Database database;
     private LootRepo lootRepo;
     private QuestRepo questRepo;
+    private QuestProgressRepo questProgressRepo;
     private ParamRepo paramRepo;
     private ProfileRepo profileRepo;
 
@@ -62,6 +64,7 @@ public final class FishingPlugin extends JavaPlugin {
         Flyway.configure().dataSource(ds).load().migrate();
         this.lootRepo = new LootRepo(ds);
         this.questRepo = new QuestRepo(ds);
+        this.questProgressRepo = new QuestProgressRepo(ds);
         this.paramRepo = new ParamRepo(ds);
         this.profileRepo = new ProfileRepo(ds);
 
@@ -135,12 +138,7 @@ public final class FishingPlugin extends JavaPlugin {
         this.quickSellService = new QuickSellService(this, lootService, economy, multiplier, tax, symbol);
         this.antiCheatService = new AntiCheatService();
         this.qteService = new QteService(antiCheatService);
-        this.questService = new QuestChainService(economy);
-        try {
-            questService.setStages(questRepo.findAll());
-        } catch (SQLException e) {
-            getLogger().warning("Failed to load quest stages: " + e.getMessage());
-        }
+        this.questService = new QuestChainService(economy, questRepo, questProgressRepo, this);
 
         Bukkit.getPluginManager().registerEvents(
             new FishingListener(lootService, awarder, levelService, qteService, questService, requiredPlayerLevel), this);
