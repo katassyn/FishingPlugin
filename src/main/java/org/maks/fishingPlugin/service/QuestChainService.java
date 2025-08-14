@@ -28,6 +28,21 @@ public class QuestChainService {
     this.stages.addAll(stages);
   }
 
+  public List<QuestStage> getStages() {
+    return List.copyOf(stages);
+  }
+
+  public void updateStage(QuestStage stage) {
+    for (int i = 0; i < stages.size(); i++) {
+      if (stages.get(i).stage() == stage.stage()) {
+        stages.set(i, stage);
+        return;
+      }
+    }
+    stages.add(stage);
+    stages.sort(java.util.Comparator.comparingInt(QuestStage::stage));
+  }
+
   /** Call when a player catches a fish. */
   public void onCatch(Player player) {
     Progress p = progress.computeIfAbsent(player.getUniqueId(), u -> new Progress());

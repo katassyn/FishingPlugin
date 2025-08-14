@@ -44,5 +44,26 @@ public class LootRepo {
       return list;
     }
   }
+
+  /** Insert or update a loot entry. */
+  public void upsert(LootEntry entry) throws SQLException {
+    String sql =
+        "MERGE INTO loot KEY(key) VALUES (?,?,?,?,?,?,?,?,?,?,?)";
+    try (Connection con = dataSource.getConnection();
+         PreparedStatement ps = con.prepareStatement(sql)) {
+      ps.setString(1, entry.key());
+      ps.setString(2, entry.category().name());
+      ps.setDouble(3, entry.baseWeight());
+      ps.setInt(4, entry.minRodLevel());
+      ps.setBoolean(5, entry.broadcast());
+      ps.setDouble(6, entry.priceBase());
+      ps.setDouble(7, entry.pricePerKg());
+      ps.setDouble(8, entry.payoutMultiplier());
+      ps.setDouble(9, entry.minWeightG());
+      ps.setDouble(10, entry.maxWeightG());
+      ps.setString(11, entry.itemBase64());
+      ps.executeUpdate();
+    }
+  }
 }
 

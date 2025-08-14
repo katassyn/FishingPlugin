@@ -29,5 +29,16 @@ public class ParamRepo {
     }
     return map;
   }
+
+  /** Insert or update a parameter. */
+  public void set(String key, String value) throws SQLException {
+    String sql = "MERGE INTO param KEY(key) VALUES (?, ?)";
+    try (Connection con = dataSource.getConnection();
+         PreparedStatement ps = con.prepareStatement(sql)) {
+      ps.setString(1, key);
+      ps.setString(2, value);
+      ps.executeUpdate();
+    }
+  }
 }
 
