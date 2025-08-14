@@ -13,6 +13,7 @@ public class AntiCheatService {
 
   private final Map<UUID, Long> lastClick = new ConcurrentHashMap<>();
   private final Map<UUID, Deque<Long>> intervals = new ConcurrentHashMap<>();
+  private final Map<UUID, Boolean> flagged = new ConcurrentHashMap<>();
   private final int sampleSize;
   private final long toleranceMs;
 
@@ -26,8 +27,8 @@ public class AntiCheatService {
   }
 
   /**
-   * Record a click timestamp. Returns true if the recent intervals are
-   * suspiciously constant (difference between max and min below tolerance).
+   * Record a click timestamp. Returns true if the recent intervals show low
+   * variance or form a repeating pattern within tolerance.
    */
   public boolean record(UUID player, long timestamp) {
     Long last = lastClick.put(player, timestamp);
@@ -43,19 +44,56 @@ public class AntiCheatService {
     if (deque.size() < sampleSize) {
       return false;
     }
-    long min = Long.MAX_VALUE;
-    long max = Long.MIN_VALUE;
+
+    int n = deque.size();
+    long[] arr = new long[n];
+    int i = 0;
+    double mean = 0;
     for (long d : deque) {
-      if (d < min) min = d;
-      if (d > max) max = d;
+      arr[i++] = d;
+      mean += d;
     }
-    return max - min <= toleranceMs;
+    mean /= n;
+    double var = 0;
+    for (long d : arr) {
+      double diff = d - mean;
+      var += diff * diff;
+    }
+    var /= n;
+    if (Math.sqrt(var) <= toleranceMs) {
+      return true;
+    }
+
+    for (int p = 1; p <= n / 2; p++) {
+      boolean ok = true;
+      for (int j = p; j < n; j++) {
+        if (Math.abs(arr[j] - arr[j - p]) > toleranceMs) {
+          ok = false;
+          break;
+        }
+      }
+      if (ok) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /** Reset stored samples for a player. */
   public void reset(UUID player) {
     lastClick.remove(player);
     intervals.remove(player);
+    flagged.remove(player);
+  }
+
+  /** Mark player for drop penalty. */
+  public void flag(UUID player) {
+    flagged.put(player, Boolean.TRUE);
+  }
+
+  /** Consume penalty flag for player. */
+  public boolean consumeFlag(UUID player) {
+    return flagged.remove(player) != null;
   }
 }
 

@@ -1,5 +1,15 @@
 player_level_requirement: 80
 
+qte:
+  clicks: 1
+  window_ms: 1000
+
+anti_cheat:
+  sample_size: 5
+  tolerance_ms: 30
+  action: CANCEL # or REDUCE
+  drop_multiplier: 0.5
+
 economy:
   currency_symbol: "$"
   quicksell_tax: 0.0
