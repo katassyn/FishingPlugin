@@ -4,29 +4,18 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.maks.fishingPlugin.service.QuickSellService;
-import org.maks.fishingPlugin.service.TeleportService;
-import org.maks.fishingPlugin.service.QuestChainService;
-import org.maks.fishingPlugin.service.LevelService;
+import org.maks.fishingPlugin.gui.MainMenu;
 
 /**
- * Basic command handler with a quick sell subcommand.
+ * Command that opens the main fishing menu.
  */
 public class FishingCommand implements CommandExecutor {
 
-  private final QuickSellService quickSellService;
-  private final TeleportService teleportService;
-  private final QuestChainService questService;
-  private final LevelService levelService;
+  private final MainMenu mainMenu;
   private final int requiredLevel;
 
-  public FishingCommand(QuickSellService quickSellService, TeleportService teleportService,
-      QuestChainService questService, LevelService levelService,
-      int requiredLevel) {
-    this.quickSellService = quickSellService;
-    this.teleportService = teleportService;
-    this.questService = questService;
-    this.levelService = levelService;
+  public FishingCommand(MainMenu mainMenu, int requiredLevel) {
+    this.mainMenu = mainMenu;
     this.requiredLevel = requiredLevel;
   }
 
@@ -40,27 +29,7 @@ public class FishingCommand implements CommandExecutor {
       player.sendMessage("You need level " + requiredLevel + " to use fishing features.");
       return true;
     }
-    if (args.length > 0) {
-      if (args[0].equalsIgnoreCase("sell")) {
-        double amount = quickSellService.sellAll(player);
-        player.sendMessage("Sold fish for " + quickSellService.currencySymbol()
-            + String.format("%.2f", amount));
-        return true;
-      }
-      if (args[0].equalsIgnoreCase("warp") && args.length > 1) {
-        if (teleportService.teleport(args[1], player)) {
-          player.sendMessage("Teleported to " + args[1]);
-        } else {
-          player.sendMessage("Unknown warp " + args[1]);
-        }
-        return true;
-      }
-      if (args[0].equalsIgnoreCase("quest")) {
-        questService.claim(player);
-        return true;
-      }
-    }
-    player.sendMessage("Usage: /" + label + " sell|warp <key>|quest");
+    mainMenu.open(player);
     return true;
   }
 }
