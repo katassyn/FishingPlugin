@@ -136,12 +136,26 @@ public final class FishingPlugin extends JavaPlugin {
         tax = Double.parseDouble(params.getOrDefault("quicksell_tax", String.valueOf(tax)));
         symbol = params.getOrDefault("currency_symbol", symbol);
         this.quickSellService = new QuickSellService(this, lootService, economy, multiplier, tax, symbol);
-        this.antiCheatService = new AntiCheatService();
-        this.qteService = new QteService(antiCheatService);
+
+        var acSec = getConfig().getConfigurationSection("anti_cheat");
+        int sampleSize = acSec != null ? acSec.getInt("sample_size", 5) : 5;
+        long toleranceMs = acSec != null ? acSec.getLong("tolerance_ms", 30) : 30;
+        String actionStr = acSec != null ? acSec.getString("action", "CANCEL") : "CANCEL";
+        double dropMult = acSec != null ? acSec.getDouble("drop_multiplier", 0.5) : 0.5;
+
+        this.antiCheatService = new AntiCheatService(sampleSize, toleranceMs);
+
+        var qteSec = getConfig().getConfigurationSection("qte");
+        int clicks = qteSec != null ? qteSec.getInt("clicks", 1) : 1;
+        long windowMs = qteSec != null ? qteSec.getLong("window_ms", 1000) : 1000;
+        QteService.MacroAction macroAction = QteService.MacroAction.valueOf(actionStr.toUpperCase());
+
+        this.qteService = new QteService(antiCheatService, clicks, windowMs, macroAction);
         this.questService = new QuestChainService(economy, questRepo, questProgressRepo, this);
 
         Bukkit.getPluginManager().registerEvents(
-            new FishingListener(lootService, awarder, levelService, qteService, questService, requiredPlayerLevel), this);
+            new FishingListener(lootService, awarder, levelService, qteService, questService, requiredPlayerLevel,
+                antiCheatService, dropMult), this);
         Bukkit.getPluginManager().registerEvents(new QteListener(qteService), this);
 
         QuickSellMenu quickSellMenu = new QuickSellMenu(quickSellService);

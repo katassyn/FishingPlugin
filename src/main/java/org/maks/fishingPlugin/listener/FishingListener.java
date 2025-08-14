@@ -8,8 +8,10 @@ import org.maks.fishingPlugin.model.LootEntry;
 import org.maks.fishingPlugin.service.Awarder;
 import org.maks.fishingPlugin.service.LevelService;
 import org.maks.fishingPlugin.service.LootService;
+import java.util.concurrent.ThreadLocalRandom;
 import org.maks.fishingPlugin.service.QteService;
 import org.maks.fishingPlugin.service.QuestChainService;
+import org.maks.fishingPlugin.service.AntiCheatService;
 
 /**
  * Listener replacing vanilla fishing drops with custom loot.
@@ -22,15 +24,20 @@ public class FishingListener implements Listener {
   private final QteService qteService;
   private final QuestChainService questService;
   private final int requiredLevel;
+  private final AntiCheatService antiCheat;
+  private final double dropMultiplier;
 
   public FishingListener(LootService lootService, Awarder awarder, LevelService levelService,
-      QteService qteService, QuestChainService questService, int requiredLevel) {
+      QteService qteService, QuestChainService questService, int requiredLevel,
+      AntiCheatService antiCheat, double dropMultiplier) {
     this.lootService = lootService;
     this.awarder = awarder;
     this.levelService = levelService;
     this.qteService = qteService;
     this.questService = questService;
     this.requiredLevel = requiredLevel;
+    this.antiCheat = antiCheat;
+    this.dropMultiplier = dropMultiplier;
   }
 
   @EventHandler
@@ -53,6 +60,11 @@ public class FishingListener implements Listener {
     event.setCancelled(true);
     if (!qteService.consume(player)) {
       player.sendMessage("Branie uciekło!");
+      return;
+    }
+    boolean penalized = antiCheat.consumeFlag(player.getUniqueId());
+    if (penalized && ThreadLocalRandom.current().nextDouble() > dropMultiplier) {
+      player.sendMessage("Podejrzane kliknięcia - nic nie złapałeś.");
       return;
     }
     int rodLevel = levelService.getLevel(player);

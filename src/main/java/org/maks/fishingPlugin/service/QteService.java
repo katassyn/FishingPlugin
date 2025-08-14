@@ -8,34 +8,46 @@ import net.kyori.adventure.text.Component;
 import org.bukkit.entity.Player;
 
 /**
- * Simple one-click QTE anti-autofish mechanic.
+ * Configurable multi-click QTE anti-autofish mechanic.
  */
 public class QteService {
 
   public enum ClickType {LEFT, RIGHT}
 
   private static class State {
-    final ClickType required;
-    final long expiry;
+    ClickType required;
+    long expiry;
+    int remaining;
     boolean success;
-    State(ClickType required, long expiry) {
+
+    State(ClickType required, long expiry, int remaining) {
       this.required = required;
       this.expiry = expiry;
+      this.remaining = remaining;
     }
   }
 
   private final Map<UUID, State> states = new ConcurrentHashMap<>();
   private final AntiCheatService antiCheat;
+  private final int clicks;
+  private final long windowMs;
+  private final MacroAction macroAction;
 
-  public QteService(AntiCheatService antiCheat) {
+  public enum MacroAction {CANCEL, REDUCE}
+
+  public QteService(AntiCheatService antiCheat, int clicks, long windowMs,
+      MacroAction macroAction) {
     this.antiCheat = antiCheat;
+    this.clicks = clicks;
+    this.windowMs = windowMs;
+    this.macroAction = macroAction;
   }
 
   /** Start a QTE after a bite. */
   public void start(Player player) {
     ClickType req = ThreadLocalRandom.current().nextBoolean() ? ClickType.LEFT : ClickType.RIGHT;
-    long expiry = System.currentTimeMillis() + ThreadLocalRandom.current().nextLong(600, 1201);
-    states.put(player.getUniqueId(), new State(req, expiry));
+    long expiry = System.currentTimeMillis() + windowMs;
+    states.put(player.getUniqueId(), new State(req, expiry, clicks));
     String msg = req == ClickType.LEFT ? "Kliknij LPM!" : "Kliknij PPM!";
     player.sendActionBar(Component.text(msg));
   }
@@ -44,9 +56,14 @@ public class QteService {
   public void handleClick(Player player, ClickType click) {
     long now = System.currentTimeMillis();
     if (antiCheat.record(player.getUniqueId(), now)) {
-      states.remove(player.getUniqueId());
-      player.sendMessage("Wykryto makro!");
-      return;
+      if (macroAction == MacroAction.CANCEL) {
+        states.remove(player.getUniqueId());
+        player.sendMessage("Wykryto makro!");
+        return;
+      } else {
+        antiCheat.flag(player.getUniqueId());
+        player.sendMessage("Wykryto makro!");
+      }
     }
     State st = states.get(player.getUniqueId());
     if (st == null) return;
@@ -55,8 +72,17 @@ public class QteService {
       player.sendMessage("Za późno!");
       return;
     }
+    if (st.success) return;
     if (click == st.required) {
-      st.success = true; // keep state until consume
+      st.remaining--;
+      if (st.remaining <= 0) {
+        st.success = true; // keep state until consume
+      } else {
+        st.required = ThreadLocalRandom.current().nextBoolean() ? ClickType.LEFT : ClickType.RIGHT;
+        st.expiry = now + windowMs;
+        String msg = st.required == ClickType.LEFT ? "Kliknij LPM!" : "Kliknij PPM!";
+        player.sendActionBar(Component.text(msg));
+      }
     } else {
       states.remove(player.getUniqueId());
       player.sendMessage("Zły przycisk!");
