@@ -59,8 +59,9 @@ public class QuestChainService {
         return;
       }
       YamlConfiguration cfg = YamlConfiguration.loadConfiguration(new InputStreamReader(is));
-      var list = cfg.getMapList("quests");
-      for (Map<?, ?> map : list) {
+      @SuppressWarnings("unchecked")
+      List<Map<String, Object>> list = (List<Map<String, Object>>) (List<?>) cfg.getMapList("quests");
+      for (Map<String, Object> map : list) {
         int stage = ((Number) map.get("stage")).intValue();
         String title = String.valueOf(map.getOrDefault("title", "Stage " + stage));
         String lore = String.valueOf(map.getOrDefault("lore", ""));

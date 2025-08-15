@@ -143,19 +143,19 @@ public class AdminQuestEditorMenu implements Listener {
         }
       }
       case MIDDLE -> {
-        QuestStage.RewardType[] vals = QuestStage.RewardType.values();
-        QuestStage.RewardType next = vals[(stage.rewardType().ordinal() + 1) % vals.length];
-        QuestStage updated = new QuestStage(stage.stage(), stage.title(), stage.lore(),
-            stage.goalType(), stage.goal(), next, stage.reward(), stage.rewardData());
-        save(updated, player);
-        player.openInventory(createInventory());
-      }
-      case SHIFT_MIDDLE -> {
-        QuestStage.GoalType[] vals = QuestStage.GoalType.values();
-        QuestStage.GoalType next = vals[(stage.goalType().ordinal() + 1) % vals.length];
-        QuestStage updated = new QuestStage(stage.stage(), stage.title(), stage.lore(),
-            next, stage.goal(), stage.rewardType(), stage.reward(), stage.rewardData());
-        save(updated, player);
+        if (event.isShiftClick()) {
+          QuestStage.GoalType[] vals = QuestStage.GoalType.values();
+          QuestStage.GoalType next = vals[(stage.goalType().ordinal() + 1) % vals.length];
+          QuestStage updated = new QuestStage(stage.stage(), stage.title(), stage.lore(),
+              next, stage.goal(), stage.rewardType(), stage.reward(), stage.rewardData());
+          save(updated, player);
+        } else {
+          QuestStage.RewardType[] vals = QuestStage.RewardType.values();
+          QuestStage.RewardType next = vals[(stage.rewardType().ordinal() + 1) % vals.length];
+          QuestStage updated = new QuestStage(stage.stage(), stage.title(), stage.lore(),
+              stage.goalType(), stage.goal(), next, stage.reward(), stage.rewardData());
+          save(updated, player);
+        }
         player.openInventory(createInventory());
       }
       case SWAP_OFFHAND -> {
