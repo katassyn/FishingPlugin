@@ -55,6 +55,8 @@ public class AdminLootEditorMenu implements Listener {
 
   enum Type { MAIN, WEIGHTS, SCALING, ECON }
 
+  private static final int[] PREVIEW_LEVELS = {0, 50, 100};
+
   private ItemStack button(Material mat, String name) {
     ItemStack item = new ItemStack(mat);
     ItemMeta meta = item.getItemMeta();
@@ -149,6 +151,21 @@ public class AdminLootEditorMenu implements Listener {
   private Inventory scalingInv() {
     Map<Integer, Category> map = new HashMap<>();
     Inventory inv = Bukkit.createInventory(new Holder(Type.SCALING, map), 54, "Scaling");
+
+    Map<Integer, Map<Category, Double>> levelWeights = new HashMap<>();
+    Map<Integer, Double> levelTotals = new HashMap<>();
+    for (int lvl : PREVIEW_LEVELS) {
+      Map<Category, Double> weights = new EnumMap<>(Category.class);
+      double total = 0.0;
+      for (LootEntry e : lootService.getEntries()) {
+        double w = lootService.effectiveWeight(e, lvl);
+        weights.merge(e.category(), w, Double::sum);
+        total += w;
+      }
+      levelWeights.put(lvl, weights);
+      levelTotals.put(lvl, total);
+    }
+
     int slot = 0;
     for (Category cat : Category.values()) {
       ScaleConf conf = lootService.getScale(cat);
@@ -163,6 +180,12 @@ public class AdminLootEditorMenu implements Listener {
         lore.add(Component.text("Mode: " + conf.mode()));
         lore.add(Component.text(String.format("A: %.2f", conf.a())));
         lore.add(Component.text(String.format("K: %.2f", conf.k())));
+        for (int lvl : PREVIEW_LEVELS) {
+          double w = levelWeights.get(lvl).getOrDefault(cat, 0.0);
+          double total = levelTotals.get(lvl);
+          double pct = total > 0 ? (w / total) * 100.0 : 0.0;
+          lore.add(Component.text(String.format("L%d: %.2f (%.1f%%)", lvl, w, pct)));
+        }
         lore.add(Component.text("L-click mode, R +/-A, M +/-K"));
         meta.lore(lore);
         item.setItemMeta(meta);
