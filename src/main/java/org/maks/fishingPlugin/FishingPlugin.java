@@ -36,6 +36,8 @@ import org.maks.fishingPlugin.gui.ShopMenu;
 import org.maks.fishingPlugin.gui.QuestMenu;
 import org.maks.fishingPlugin.gui.AdminLootEditorMenu;
 import org.maks.fishingPlugin.gui.AdminQuestEditorMenu;
+import org.maks.fishingPlugin.gui.PriceListMenu;
+import org.maks.fishingPlugin.gui.StatsMenu;
 import net.milkbowl.vault.economy.Economy;
 
 public final class FishingPlugin extends JavaPlugin {
@@ -177,11 +179,19 @@ public final class FishingPlugin extends JavaPlugin {
         QuickSellMenu quickSellMenu = new QuickSellMenu(quickSellService);
         ShopMenu shopMenu = new ShopMenu(this);
         QuestMenu questMenu = new QuestMenu(questService);
+        PriceListMenu priceListMenu = new PriceListMenu(lootService, quickSellService);
+        StatsMenu statsMenu = new StatsMenu(levelService, lootService);
         AdminQuestEditorMenu adminQuestMenu = new AdminQuestEditorMenu(questService, questRepo);
         AdminLootEditorMenu adminMenu = new AdminLootEditorMenu(lootService, lootRepo, paramRepo, adminQuestMenu);
-        MainMenu mainMenu = new MainMenu(quickSellMenu, shopMenu, questMenu, teleportService,
-            requiredPlayerLevel);
+        MainMenu mainMenu = new MainMenu(quickSellMenu, shopMenu, questMenu, priceListMenu, statsMenu,
+            teleportService, requiredPlayerLevel);
         getCommand("fishing").setExecutor(new FishingCommand(mainMenu, adminMenu, requiredPlayerLevel));
+
+        Bukkit.getPluginManager().registerEvents(mainMenu, this);
+        Bukkit.getPluginManager().registerEvents(quickSellMenu, this);
+        Bukkit.getPluginManager().registerEvents(questMenu, this);
+        Bukkit.getPluginManager().registerEvents(adminMenu, this);
+        Bukkit.getPluginManager().registerEvents(adminQuestMenu, this);
 
         getLogger().info("FishingPlugin enabled");
     }

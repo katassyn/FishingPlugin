@@ -1,12 +1,22 @@
 package org.maks.fishingPlugin.gui;
 
 import java.sql.SQLException;
+import java.util.EnumMap;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.event.ClickEvent;
-import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.ClickType;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import net.kyori.adventure.text.Component;
 import org.maks.fishingPlugin.data.LootRepo;
 import org.maks.fishingPlugin.data.ParamRepo;
 import org.maks.fishingPlugin.model.Category;
@@ -16,8 +26,8 @@ import org.maks.fishingPlugin.model.ScaleMode;
 import org.maks.fishingPlugin.service.LootService;
 import org.maks.fishingPlugin.util.ItemSerialization;
 
-/** Chat-based admin editor for loot and scaling. */
-public class AdminLootEditorMenu {
+/** Inventory based admin editor for loot and scaling. */
+public class AdminLootEditorMenu implements Listener {
 
   private final LootService lootService;
   private final LootRepo lootRepo;
@@ -32,23 +42,96 @@ public class AdminLootEditorMenu {
     this.questMenu = questMenu;
   }
 
+  enum Type { MAIN, WEIGHTS, SCALING }
+
+  private ItemStack button(Material mat, String name) {
+    ItemStack item = new ItemStack(mat);
+    ItemMeta meta = item.getItemMeta();
+    if (meta != null) {
+      meta.displayName(Component.text(name));
+      item.setItemMeta(meta);
+    }
+    return item;
+  }
+
+  private Inventory mainInv() {
+    Inventory inv = Bukkit.createInventory(new Holder(Type.MAIN), 27, "Admin Editor");
+    inv.setItem(10, button(Material.GREEN_WOOL, "Add From Hand"));
+    inv.setItem(12, button(Material.ANVIL, "Edit Weights"));
+    inv.setItem(14, button(Material.BOOK, "Edit Scaling"));
+    inv.setItem(16, button(Material.PAPER, "Edit Quests"));
+    return inv;
+  }
+
+  private Inventory weightsInv() {
+    Map<Integer, LootEntry> map = new HashMap<>();
+    Inventory inv = Bukkit.createInventory(new Holder(Type.WEIGHTS, map), 54, "Weights");
+    int slot = 0;
+    for (LootEntry e : lootService.getEntries()) {
+      ItemStack item;
+      try {
+        item = ItemSerialization.fromBase64(e.itemBase64());
+      } catch (Exception ex) {
+        item = new ItemStack(Material.PAPER);
+      }
+      ItemMeta meta = item.getItemMeta();
+      if (meta != null) {
+        meta.displayName(Component.text(e.key()));
+        java.util.List<Component> lore = new java.util.ArrayList<>();
+        lore.add(Component.text("Weight: " + String.format("%.2f", e.baseWeight())));
+        lore.add(Component.text("Left +1, Right -1"));
+        meta.lore(lore);
+        item.setItemMeta(meta);
+      }
+      inv.setItem(slot, item);
+      map.put(slot, e);
+      slot++;
+      if (slot >= 53) break;
+    }
+    inv.setItem(53, button(Material.BARRIER, "Back"));
+    return inv;
+  }
+
+  private Inventory scalingInv() {
+    Map<Integer, Category> map = new HashMap<>();
+    Inventory inv = Bukkit.createInventory(new Holder(Type.SCALING, map), 54, "Scaling");
+    int slot = 0;
+    for (Category cat : Category.values()) {
+      ScaleConf conf = lootService.getScale(cat);
+      if (conf == null) {
+        conf = new ScaleConf(ScaleMode.EXP, 0, 0);
+      }
+      ItemStack item = new ItemStack(Material.PAPER);
+      ItemMeta meta = item.getItemMeta();
+      if (meta != null) {
+        meta.displayName(Component.text(cat.name()));
+        java.util.List<Component> lore = new java.util.ArrayList<>();
+        lore.add(Component.text("Mode: " + conf.mode()));
+        lore.add(Component.text(String.format("A: %.2f", conf.a())));
+        lore.add(Component.text(String.format("K: %.2f", conf.k())));
+        lore.add(Component.text("L-click mode, R +/-A, M +/-K"));
+        meta.lore(lore);
+        item.setItemMeta(meta);
+      }
+      inv.setItem(slot, item);
+      map.put(slot, cat);
+      slot++;
+    }
+    inv.setItem(53, button(Material.BARRIER, "Back"));
+    return inv;
+  }
+
+  /** Open the admin menu. */
   public void open(Player player) {
-    Component menu = Component.text()
-        .append(Component.text("Admin Editor").color(NamedTextColor.RED))
-        .append(Component.newline())
-        .append(Component.text("[Add From Hand]").color(NamedTextColor.GREEN)
-            .clickEvent(ClickEvent.callback(a -> addFromHand(player))))
-        .append(Component.newline())
-        .append(Component.text("[Edit Weights]").color(NamedTextColor.YELLOW)
-            .clickEvent(ClickEvent.callback(a -> openWeights(player))))
-        .append(Component.newline())
-        .append(Component.text("[Edit Scaling]").color(NamedTextColor.AQUA)
-            .clickEvent(ClickEvent.callback(a -> openScaling(player))))
-        .append(Component.newline())
-        .append(Component.text("[Edit Quests]").color(NamedTextColor.GOLD)
-            .clickEvent(ClickEvent.callback(a -> questMenu.open(player))))
-        .build();
-    player.sendMessage(menu);
+    player.openInventory(mainInv());
+  }
+
+  private void openWeights(Player player) {
+    player.openInventory(weightsInv());
+  }
+
+  private void openScaling(Player player) {
+    player.openInventory(scalingInv());
   }
 
   private void addFromHand(Player player) {
@@ -58,7 +141,7 @@ public class AdminLootEditorMenu {
       return;
     }
     String key = "hand_" + UUID.randomUUID();
-    LootEntry entry = new LootEntry(key, Category.COMMON, 1.0, 0, false, 0.0,
+    LootEntry entry = new LootEntry(key, Category.FISH, 1.0, 0, false, 0.0,
         0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 100.0, 200.0, ItemSerialization.toBase64(item));
     lootService.addEntry(entry);
     try {
@@ -69,82 +152,33 @@ public class AdminLootEditorMenu {
     player.sendMessage("Added loot entry " + key);
   }
 
-  private void openWeights(Player player) {
-    Component menu = Component.text("Weights").color(NamedTextColor.YELLOW);
-    for (LootEntry e : lootService.getEntries()) {
-      Component line = Component.text()
-          .append(Component.newline())
-          .append(Component.text(e.key() + " = " + String.format("%.2f", e.baseWeight())))
-          .append(Component.text(" [+]").color(NamedTextColor.GREEN)
-              .clickEvent(ClickEvent.callback(a -> adjustWeight(player, e, 1.0))))
-          .append(Component.text(" [-]").color(NamedTextColor.RED)
-              .clickEvent(ClickEvent.callback(a -> adjustWeight(player, e, -1.0))))
-          .build();
-      menu = menu.append(line);
-    }
-    menu = menu.append(Component.newline()).append(Component.text("[Back]").color(NamedTextColor.GRAY)
-        .clickEvent(ClickEvent.callback(a -> open(player))));
-    player.sendMessage(menu);
-  }
-
   private void adjustWeight(Player player, LootEntry e, double delta) {
     double newWeight = Math.max(0.0, e.baseWeight() + delta);
     LootEntry updated = new LootEntry(e.key(), e.category(), newWeight, e.minRodLevel(), e.broadcast(),
-        e.priceBase(), e.pricePerKg(), e.payoutMultiplier(), e.qualitySWeight(), e.qualityAWeight(), e.qualityBWeight(), e.qualityCWeight(), e.minWeightG(), e.maxWeightG(), e.itemBase64());
+        e.priceBase(), e.pricePerKg(), e.payoutMultiplier(), e.qualitySWeight(), e.qualityAWeight(),
+        e.qualityBWeight(), e.qualityCWeight(), e.minWeightG(), e.maxWeightG(), e.itemBase64());
     lootService.updateEntry(updated);
     try {
       lootRepo.upsert(updated);
     } catch (SQLException ex) {
       player.sendMessage("DB error: " + ex.getMessage());
     }
-    openWeights(player);
-  }
-
-  private void openScaling(Player player) {
-    Component menu = Component.text("Scaling").color(NamedTextColor.AQUA);
-    for (Category cat : Category.values()) {
-      ScaleConf conf = lootService.getScale(cat);
-      if (conf == null) {
-        conf = new ScaleConf(ScaleMode.EXP, 0, 0);
-      }
-      Component line = Component.text()
-          .append(Component.newline())
-          .append(Component.text(cat.name() + " " + conf.mode() + " a=" + conf.a() + " k=" + conf.k()))
-          .append(Component.text(" [Mode]").color(NamedTextColor.YELLOW)
-              .clickEvent(ClickEvent.callback(a -> cycleMode(player, cat, conf))))
-          .append(Component.text(" [A+]").color(NamedTextColor.GREEN)
-              .clickEvent(ClickEvent.callback(a -> adjustA(player, cat, conf, 0.1))))
-          .append(Component.text(" [A-]").color(NamedTextColor.RED)
-              .clickEvent(ClickEvent.callback(a -> adjustA(player, cat, conf, -0.1))))
-          .append(Component.text(" [K+]").color(NamedTextColor.GREEN)
-              .clickEvent(ClickEvent.callback(a -> adjustK(player, cat, conf, 0.1))))
-          .append(Component.text(" [K-]").color(NamedTextColor.RED)
-              .clickEvent(ClickEvent.callback(a -> adjustK(player, cat, conf, -0.1))))
-          .build();
-      menu = menu.append(line);
-    }
-    menu = menu.append(Component.newline()).append(Component.text("[Back]").color(NamedTextColor.GRAY)
-        .clickEvent(ClickEvent.callback(a -> open(player))));
-    player.sendMessage(menu);
   }
 
   private void cycleMode(Player player, Category cat, ScaleConf conf) {
     ScaleMode mode = conf.mode() == ScaleMode.EXP ? ScaleMode.POLY : ScaleMode.EXP;
     ScaleConf updated = new ScaleConf(mode, conf.a(), conf.k());
     saveScale(cat, updated, player);
-    openScaling(player);
   }
 
   private void adjustA(Player player, Category cat, ScaleConf conf, double delta) {
     ScaleConf updated = new ScaleConf(conf.mode(), conf.a() + delta, conf.k());
     saveScale(cat, updated, player);
-    openScaling(player);
   }
 
   private void adjustK(Player player, Category cat, ScaleConf conf, double delta) {
     ScaleConf updated = new ScaleConf(conf.mode(), conf.a(), conf.k() + delta);
     saveScale(cat, updated, player);
-    openScaling(player);
   }
 
   private void saveScale(Category cat, ScaleConf conf, Player player) {
@@ -157,4 +191,88 @@ public class AdminLootEditorMenu {
       player.sendMessage("DB error: " + e.getMessage());
     }
   }
+
+  @EventHandler
+  public void onClick(InventoryClickEvent event) {
+    if (!(event.getInventory().getHolder() instanceof Holder holder)) {
+      return;
+    }
+    event.setCancelled(true);
+    Player player = (Player) event.getWhoClicked();
+    switch (holder.type) {
+      case MAIN -> {
+        int slot = event.getRawSlot();
+        if (slot == 10) {
+          addFromHand(player);
+          open(player);
+        } else if (slot == 12) {
+          openWeights(player);
+        } else if (slot == 14) {
+          openScaling(player);
+        } else if (slot == 16) {
+          questMenu.open(player);
+        }
+      }
+      case WEIGHTS -> {
+        if (event.getRawSlot() == 53) {
+          open(player);
+          return;
+        }
+        LootEntry e = holder.weightMap.get(event.getRawSlot());
+        if (e != null) {
+          double delta = event.getClick() == ClickType.RIGHT ? -1.0 : 1.0;
+          adjustWeight(player, e, delta);
+          openWeights(player);
+        }
+      }
+      case SCALING -> {
+        if (event.getRawSlot() == 53) {
+          open(player);
+          return;
+        }
+        Category cat = holder.scaleMap.get(event.getRawSlot());
+        if (cat != null) {
+          ScaleConf conf = lootService.getScale(cat);
+          if (conf == null) {
+            conf = new ScaleConf(ScaleMode.EXP, 0, 0);
+          }
+          ClickType ct = event.getClick();
+          if (ct == ClickType.LEFT) {
+            cycleMode(player, cat, conf);
+          } else if (ct == ClickType.RIGHT) {
+            adjustA(player, cat, conf, 0.1);
+          } else if (ct == ClickType.SHIFT_RIGHT) {
+            adjustA(player, cat, conf, -0.1);
+          } else if (ct == ClickType.MIDDLE) {
+            adjustK(player, cat, conf, 0.1);
+          } else if (ct == ClickType.SHIFT_LEFT) {
+            adjustK(player, cat, conf, -0.1);
+          }
+          openScaling(player);
+        }
+      }
+    }
+  }
+
+  private static class Holder implements InventoryHolder {
+    final Type type;
+    final Map<Integer, LootEntry> weightMap;
+    final Map<Integer, Category> scaleMap;
+    Holder(Type type) {
+      this(type, new HashMap<>(), new EnumMap<>(Category.class));
+    }
+    Holder(Type type, Map<Integer, LootEntry> weightMap) {
+      this(type, weightMap, new EnumMap<>(Category.class));
+    }
+    Holder(Type type, Map<Integer, LootEntry> weightMap, Map<Integer, Category> scaleMap) {
+      this.type = type;
+      this.weightMap = weightMap;
+      this.scaleMap = scaleMap;
+    }
+    @Override
+    public Inventory getInventory() {
+      return null;
+    }
+  }
 }
+

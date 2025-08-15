@@ -1,15 +1,24 @@
 package org.maks.fishingPlugin.gui;
 
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.event.ClickEvent;
-import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryHolder;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import net.kyori.adventure.text.Component;
 import org.maks.fishingPlugin.model.QuestProgress;
 import org.maks.fishingPlugin.model.QuestStage;
 import org.maks.fishingPlugin.service.QuestChainService;
 
-/** Simple text-based quest menu. */
-public class QuestMenu {
+/**
+ * Inventory based quest progress menu.
+ */
+public class QuestMenu implements Listener {
 
   private final QuestChainService questService;
 
@@ -17,26 +26,81 @@ public class QuestMenu {
     this.questService = questService;
   }
 
-  public void open(Player player) {
+  private Inventory createInventory(Player player) {
+    Inventory inv = Bukkit.createInventory(new Holder(), 27, "Quests");
     if (questService.isCompleted(player)) {
-      player.sendMessage(Component.text("All quests completed.").color(NamedTextColor.GOLD));
-      return;
+      ItemStack done = new ItemStack(Material.BOOK);
+      ItemMeta meta = done.getItemMeta();
+      if (meta != null) {
+        meta.displayName(Component.text("All quests completed"));
+        done.setItemMeta(meta);
+      }
+      inv.setItem(13, done);
+      return inv;
     }
     QuestProgress p = questService.getProgress(player);
     QuestStage stage = questService.getCurrentStage(p.stage());
-    Component.Builder menu = Component.text()
-        .append(Component.text("Quest Stage " + stage.stage()).color(NamedTextColor.GOLD))
-        .append(Component.newline())
-        .append(Component.text("Progress: " + p.count() + "/" + stage.goal()))
-        .append(Component.newline())
-        .append(Component.text("Reward: $" + String.format("%.0f", stage.reward())))
-        .append(Component.newline());
-    if (p.count() >= stage.goal()) {
-      menu.append(Component.text("[Claim Reward]").color(NamedTextColor.GREEN)
-          .clickEvent(ClickEvent.callback(a -> questService.claim(player))));
-    } else {
-      menu.append(Component.text("Keep fishing...").color(NamedTextColor.GRAY));
+    ItemStack info = new ItemStack(Material.PAPER);
+    ItemMeta meta = info.getItemMeta();
+    if (meta != null) {
+      meta.displayName(Component.text("Stage " + stage.stage()));
+      java.util.List<Component> lore = new java.util.ArrayList<>();
+      lore.add(Component.text("Progress: " + p.count() + "/" + stage.goal()));
+      lore.add(Component.text("Reward: $" + String.format("%.0f", stage.reward())));
+      meta.lore(lore);
+      info.setItemMeta(meta);
     }
-    player.sendMessage(menu.build());
+    inv.setItem(12, info);
+
+    if (p.count() >= stage.goal()) {
+      ItemStack claim = new ItemStack(Material.GOLD_INGOT);
+      ItemMeta cm = claim.getItemMeta();
+      if (cm != null) {
+        cm.displayName(Component.text("Claim Reward"));
+        claim.setItemMeta(cm);
+      }
+      inv.setItem(14, claim);
+    } else {
+      ItemStack keep = new ItemStack(Material.FISHING_ROD);
+      ItemMeta km = keep.getItemMeta();
+      if (km != null) {
+        km.displayName(Component.text("Keep fishing..."));
+        keep.setItemMeta(km);
+      }
+      inv.setItem(14, keep);
+    }
+    return inv;
+  }
+
+  /** Open the quest menu. */
+  public void open(Player player) {
+    player.openInventory(createInventory(player));
+  }
+
+  @EventHandler
+  public void onClick(InventoryClickEvent event) {
+    if (!(event.getInventory().getHolder() instanceof Holder)) {
+      return;
+    }
+    event.setCancelled(true);
+    Player player = (Player) event.getWhoClicked();
+    if (event.getRawSlot() == 14) {
+      if (!questService.isCompleted(player)) {
+        QuestProgress p = questService.getProgress(player);
+        QuestStage stage = questService.getCurrentStage(p.stage());
+        if (p.count() >= stage.goal()) {
+          questService.claim(player);
+        }
+      }
+      open(player);
+    }
+  }
+
+  private static class Holder implements InventoryHolder {
+    @Override
+    public Inventory getInventory() {
+      return null;
+    }
   }
 }
+
