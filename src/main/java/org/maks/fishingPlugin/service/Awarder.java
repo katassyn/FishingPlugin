@@ -12,6 +12,8 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.Bukkit;
 import org.maks.fishingPlugin.model.Category;
 import org.maks.fishingPlugin.model.LootEntry;
+import org.maks.fishingPlugin.model.MirrorItem;
+import org.maks.fishingPlugin.service.MirrorItemService;
 import org.maks.fishingPlugin.util.ItemSerialization;
 import org.maks.fishingPlugin.util.WeightedPicker;
 import org.maks.fishingPlugin.FishingPlugin;
@@ -25,9 +27,11 @@ public class Awarder {
   private final NamespacedKey keyKey;
   private final NamespacedKey weightKey;
   private final NamespacedKey qualityKey;
+  private final MirrorItemService mirrorItems;
 
-  public Awarder(JavaPlugin plugin) {
+  public Awarder(JavaPlugin plugin, MirrorItemService mirrorItems) {
     this.plugin = plugin;
+    this.mirrorItems = mirrorItems;
     this.keyKey = new NamespacedKey(plugin, "loot-key");
     this.weightKey = new NamespacedKey(plugin, "weight-g");
     this.qualityKey = new NamespacedKey(plugin, "quality");
@@ -44,22 +48,15 @@ public class Awarder {
    */
   public AwardResult give(Player player, LootEntry loot) {
     ItemStack item = null;
-    if (loot.itemBase64() != null) {
+    boolean broadcast = loot.broadcast();
+    MirrorItem mirror = mirrorItems.get(loot.key());
+    if (mirror != null) {
+      item = ItemSerialization.fromBase64(mirror.itemBase64());
+      broadcast = mirror.broadcast();
+    } else if (loot.itemBase64() != null) {
       item = ItemSerialization.fromBase64(loot.itemBase64());
     } else if (loot.category() == Category.FISH || loot.category() == Category.FISH_PREMIUM) {
       item = new ItemStack(Material.COD);
-    } else if (loot.category() == Category.FISHERMAN_CHEST) {
-      if (((FishingPlugin) plugin).hasEliteLootbox()) {
-        String cmd = "lootbox give " + player.getName() + " " + loot.key();
-        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
-      } else {
-        plugin.getLogger().warning("EliteLootbox not found; cannot give crate " + loot.key());
-      }
-      player.sendMessage("You obtained: " + loot.key());
-      if (loot.broadcast()) {
-        Bukkit.broadcastMessage(player.getName() + " obtained " + loot.key() + "!");
-      }
-      return new AwardResult(0, null);
     }
 
     if (item == null) {
@@ -82,7 +79,7 @@ public class Awarder {
       item.setItemMeta(meta);
     }
     player.getInventory().addItem(item);
-    if (loot.broadcast()) {
+    if (broadcast) {
       Bukkit.broadcastMessage(player.getName() + " obtained " + loot.key() + "!");
     }
     return new AwardResult(weight, item);
