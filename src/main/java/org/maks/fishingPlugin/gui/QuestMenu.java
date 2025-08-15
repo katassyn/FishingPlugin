@@ -43,10 +43,19 @@ public class QuestMenu implements Listener {
     ItemStack info = new ItemStack(Material.PAPER);
     ItemMeta meta = info.getItemMeta();
     if (meta != null) {
-      meta.displayName(Component.text("Stage " + stage.stage()));
+      meta.displayName(Component.text(stage.title()));
       java.util.List<Component> lore = new java.util.ArrayList<>();
+      if (!stage.lore().isEmpty()) {
+        lore.add(Component.text(stage.lore()));
+      }
       lore.add(Component.text("Progress: " + p.count() + "/" + stage.goal()));
-      lore.add(Component.text("Reward: $" + String.format("%.0f", stage.reward())));
+      switch (stage.rewardType()) {
+        case MONEY -> lore.add(
+            Component.text("Reward: $" + String.format("%.0f", stage.reward())));
+        case COMMAND -> lore.add(
+            Component.text("Reward: /" + stage.rewardData()));
+        case ITEM -> lore.add(Component.text("Reward: Item"));
+      }
       meta.lore(lore);
       info.setItemMeta(meta);
     }

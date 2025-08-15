@@ -11,13 +11,16 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Logger;
 import net.milkbowl.vault.economy.Economy;
+import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.maks.fishingPlugin.data.QuestProgressRepo;
 import org.maks.fishingPlugin.data.QuestRepo;
 import org.maks.fishingPlugin.model.QuestProgress;
 import org.maks.fishingPlugin.model.QuestStage;
+import org.maks.fishingPlugin.util.ItemSerialization;
 
 /**
  * Quest chain service with persistent progress and definitions loaded from DB or YAML.
@@ -59,9 +62,19 @@ public class QuestChainService {
       var list = cfg.getMapList("quests");
       for (Map<?, ?> map : list) {
         int stage = ((Number) map.get("stage")).intValue();
+        String title = String.valueOf(map.getOrDefault("title", "Stage " + stage));
+        String lore = String.valueOf(map.getOrDefault("lore", ""));
+        String gtStr = String.valueOf(map.getOrDefault("goalType", "CATCH"));
+        QuestStage.GoalType goalType =
+            QuestStage.GoalType.valueOf(gtStr.toUpperCase());
         int goal = ((Number) map.get("goal")).intValue();
-        double reward = ((Number) map.get("reward")).doubleValue();
-        QuestStage qs = new QuestStage(stage, goal, reward);
+        String rtStr = String.valueOf(map.getOrDefault("rewardType", "MONEY"));
+        QuestStage.RewardType rewardType =
+            QuestStage.RewardType.valueOf(rtStr.toUpperCase());
+        double reward = ((Number) map.getOrDefault("reward", 0)).doubleValue();
+        String rewardData = String.valueOf(map.getOrDefault("rewardData", ""));
+        QuestStage qs =
+            new QuestStage(stage, title, lore, goalType, goal, rewardType, reward, rewardData);
         stages.add(qs);
         try {
           questRepo.upsert(qs);
@@ -125,13 +138,15 @@ public class QuestChainService {
     if (p.stage() >= stages.size()) {
       return; // all done
     }
-    p = new QuestProgress(p.playerUuid(), p.stage(), p.count() + 1);
-    progress.put(player.getUniqueId(), p);
-    saveProgress(p);
     QuestStage stage = stages.get(p.stage());
-    if (p.count() >= stage.goal()) {
-      player.sendMessage(
-          "Quest stage " + stage.stage() + " complete! Open the quest menu to claim reward.");
+    if (stage.goalType() == QuestStage.GoalType.CATCH) {
+      p = new QuestProgress(p.playerUuid(), p.stage(), p.count() + 1);
+      progress.put(player.getUniqueId(), p);
+      saveProgress(p);
+      if (p.count() >= stage.goal()) {
+        player.sendMessage(
+            "Quest stage " + stage.stage() + " complete! Open the quest menu to claim reward.");
+      }
     }
   }
 
@@ -160,10 +175,28 @@ public class QuestChainService {
               + stage.stage());
       return;
     }
-    economy.depositPlayer(player, stage.reward());
-    player.sendMessage(
-        "Received $" + String.format("%.0f", stage.reward())
-            + " for completing quest stage " + stage.stage());
+    switch (stage.rewardType()) {
+      case MONEY -> {
+        economy.depositPlayer(player, stage.reward());
+        player.sendMessage(
+            "Received $" + String.format("%.0f", stage.reward())
+                + " for completing quest stage " + stage.stage());
+      }
+      case COMMAND -> {
+        String cmd = stage.rewardData().replace("%player%", player.getName());
+        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
+        player.sendMessage("Command reward executed for quest stage " + stage.stage());
+      }
+      case ITEM -> {
+        try {
+          ItemStack item = ItemSerialization.fromBase64(stage.rewardData());
+          player.getInventory().addItem(item);
+          player.sendMessage("Item reward received for quest stage " + stage.stage());
+        } catch (Exception e) {
+          player.sendMessage("Failed to give item reward: " + e.getMessage());
+        }
+      }
+    }
     p = new QuestProgress(p.playerUuid(), p.stage() + 1, 0);
     progress.put(player.getUniqueId(), p);
     saveProgress(p);
