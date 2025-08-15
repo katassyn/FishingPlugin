@@ -30,11 +30,11 @@ public class LevelService {
   public void loadProfile(Player player) {
     UUID id = player.getUniqueId();
     try {
-      Profile p = profileRepo.find(id).orElse(new Profile(id, 0, 0));
+      Profile p = profileRepo.find(id).orElse(new Profile(id, 0, 0, 0, 0, 0));
       profiles.put(id, p);
     } catch (SQLException e) {
       logger.warning("Failed to load profile: " + e.getMessage());
-      profiles.put(id, new Profile(id, 0, 0));
+      profiles.put(id, new Profile(id, 0, 0, 0, 0, 0));
     }
   }
 
@@ -52,7 +52,8 @@ public class LevelService {
   }
 
   private Profile profile(Player p) {
-    return profiles.getOrDefault(p.getUniqueId(), new Profile(p.getUniqueId(), 0, 0));
+    return profiles.getOrDefault(p.getUniqueId(),
+        new Profile(p.getUniqueId(), 0, 0, 0, 0, 0));
   }
 
   public int getLevel(Player p) {
@@ -63,8 +64,10 @@ public class LevelService {
     return profile(p).rodXp();
   }
 
-  private void set(Player p, int level, long xp) {
-    profiles.put(p.getUniqueId(), new Profile(p.getUniqueId(), level, xp));
+  private void set(Player p, int level, long xp, long totalCatches, long totalWeightG,
+      long largestCatchG) {
+    profiles.put(p.getUniqueId(),
+        new Profile(p.getUniqueId(), level, xp, totalCatches, totalWeightG, largestCatchG));
   }
 
   /**
@@ -94,13 +97,30 @@ public class LevelService {
    */
   public int awardCatchExp(Player p, double weightKg, boolean perfect) {
     long gain = Math.round(8 + 0.4 * weightKg + (perfect ? 3 : 0));
-    long xp = getXp(p) + gain;
-    int level = getLevel(p);
+    Profile prof = profile(p);
+    long xp = prof.rodXp() + gain;
+    int level = prof.rodLevel();
     while (xp >= neededExp(level)) {
       xp -= neededExp(level);
       level++;
     }
-    set(p, level, xp);
+    long weightG = Math.round(weightKg * 1000);
+    long totalCatches = prof.totalCatches() + 1;
+    long totalWeight = prof.totalWeightG() + weightG;
+    long largest = Math.max(prof.largestCatchG(), weightG);
+    set(p, level, xp, totalCatches, totalWeight, largest);
     return level;
+  }
+
+  public long getTotalCatches(Player p) {
+    return profile(p).totalCatches();
+  }
+
+  public long getTotalWeightG(Player p) {
+    return profile(p).totalWeightG();
+  }
+
+  public long getLargestCatchG(Player p) {
+    return profile(p).largestCatchG();
   }
 }

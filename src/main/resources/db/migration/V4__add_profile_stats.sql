@@ -1,0 +1,4 @@
+ALTER TABLE fishing_profile
+    ADD COLUMN total_catches BIGINT NOT NULL DEFAULT 0,
+    ADD COLUMN total_weight_g BIGINT NOT NULL DEFAULT 0,
+    ADD COLUMN largest_catch_g BIGINT NOT NULL DEFAULT 0;
