@@ -58,7 +58,8 @@ public class FishingListener implements Listener {
       return;
     }
     event.setCancelled(true);
-    if (!qteService.consume(player)) {
+    QteService.Result qteResult = qteService.consume(player);
+    if (!qteResult.success()) {
       player.sendMessage("The fish got away!");
       return;
     }
@@ -74,7 +75,7 @@ public class FishingListener implements Listener {
       double kg = res.weightG() / 1000.0;
       player.sendMessage("You caught a fish weighing " + String.format("%.1f", kg) + "kg");
       int before = rodLevel;
-      int after = levelService.awardCatchExp(player, kg, true);
+      int after = levelService.awardCatchExp(player, kg, qteResult.perfect());
       if (after > before) {
         player.sendMessage("Your fishing rod leveled up to " + after + "!");
       }

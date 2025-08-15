@@ -20,9 +20,25 @@ public class LevelService {
   private final Logger logger;
   private final Map<UUID, Profile> profiles = new HashMap<>();
 
-  public LevelService(ProfileRepo profileRepo, JavaPlugin plugin) {
+  private final double expBase;
+  private final double growthA;
+  private final double growthB;
+  private final double growthC;
+  private final double baseGain;
+  private final double weightFactor;
+  private final double qteBonus;
+
+  public LevelService(ProfileRepo profileRepo, JavaPlugin plugin, double expBase, double growthA,
+      double growthB, double growthC, double baseGain, double weightFactor, double qteBonus) {
     this.profileRepo = profileRepo;
     this.logger = plugin.getLogger();
+    this.expBase = expBase;
+    this.growthA = growthA;
+    this.growthB = growthB;
+    this.growthC = growthC;
+    this.baseGain = baseGain;
+    this.weightFactor = weightFactor;
+    this.qteBonus = qteBonus;
   }
 
   /**
@@ -101,12 +117,13 @@ public class LevelService {
    */
   public long neededExp(int level) {
     if (level < 15) {
-      return Math.round(150 * Math.pow(1.12, level));
+      return Math.round(expBase * Math.pow(growthA, level));
     }
     if (level < 30) {
-      return Math.round(150 * Math.pow(1.12, 15) * Math.pow(1.14, level - 15));
+      return Math.round(expBase * Math.pow(growthA, 15) * Math.pow(growthB, level - 15));
     }
-    return Math.round(150 * Math.pow(1.12, 15) * Math.pow(1.14, 15) * Math.pow(1.16, level - 30));
+    return Math.round(expBase * Math.pow(growthA, 15) * Math.pow(growthB, 15)
+        * Math.pow(growthC, level - 30));
   }
 
   /**
@@ -118,7 +135,7 @@ public class LevelService {
    * @return new rod level after applying experience
    */
   public int awardCatchExp(Player p, double weightKg, boolean perfect) {
-    long gain = Math.round(8 + 0.4 * weightKg + (perfect ? 3 : 0));
+    long gain = Math.round(baseGain + weightFactor * weightKg + (perfect ? qteBonus : 0));
     Profile prof = profile(p);
     long xp = prof.rodXp() + gain;
     int level = prof.rodLevel();

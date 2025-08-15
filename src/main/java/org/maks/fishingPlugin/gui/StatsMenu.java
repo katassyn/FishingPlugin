@@ -49,15 +49,15 @@ public class StatsMenu {
     }
     inv.setItem(10, info);
 
-    // Compute category percentages based on base category weights
+    // Compute category percentages based on effective weights of all entries
     Map<Category, Double> weights = new EnumMap<>(Category.class);
-    for (LootEntry e : lootService.getEntries()) {
-      if (lootService.effectiveWeight(e, level) > 0) {
-        weights.put(e.category(), lootService.getBaseCategoryWeight(e.category()));
-      }
-    }
     double total = 0.0;
-    for (double w : weights.values()) {
+    for (LootEntry e : lootService.getEntries()) {
+      double w = lootService.effectiveWeight(e, level);
+      if (w <= 0) {
+        continue;
+      }
+      weights.merge(e.category(), w, Double::sum);
       total += w;
     }
     int slot = 12;

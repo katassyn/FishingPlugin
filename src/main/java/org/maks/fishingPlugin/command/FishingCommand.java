@@ -36,6 +36,10 @@ public class FishingCommand implements CommandExecutor {
       adminMenu.open(player);
       return true;
     }
+    if (!player.hasPermission("fishing.use")) {
+      player.sendMessage("You don't have permission.");
+      return true;
+    }
     if (player.getLevel() < requiredLevel) {
       player.sendMessage("You need level " + requiredLevel + " to use fishing features.");
       return true;

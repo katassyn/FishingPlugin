@@ -91,7 +91,6 @@ public final class FishingPlugin extends JavaPlugin {
         this.questProgressRepo = new QuestProgressRepo(ds);
         this.paramRepo = new ParamRepo(ds);
         this.profileRepo = new ProfileRepo(ds);
-        this.levelService = new LevelService(profileRepo, this);
         this.mirrorItemService = new MirrorItemService();
 
         Map<String, String> params = new HashMap<>();
@@ -104,6 +103,30 @@ public final class FishingPlugin extends JavaPlugin {
         this.requiredPlayerLevel = Integer.parseInt(params.getOrDefault(
             "player_level_requirement",
             String.valueOf(getConfig().getInt("player_level_requirement", 80))));
+
+        var levSec = getConfig().getConfigurationSection("leveling");
+        double expBase = levSec != null ? levSec.getDouble("exp_base", 150) : 150;
+        double growthA = levSec != null ? levSec.getDouble("growthA", 1.12) : 1.12;
+        double growthB = levSec != null ? levSec.getDouble("growthB", 1.14) : 1.14;
+        double growthC = levSec != null ? levSec.getDouble("growthC", 1.16) : 1.16;
+        expBase = Double.parseDouble(params.getOrDefault("exp_base", String.valueOf(expBase)));
+        growthA = Double.parseDouble(params.getOrDefault("growthA", String.valueOf(growthA)));
+        growthB = Double.parseDouble(params.getOrDefault("growthB", String.valueOf(growthB)));
+        growthC = Double.parseDouble(params.getOrDefault("growthC", String.valueOf(growthC)));
+
+        var gainSec = getConfig().getConfigurationSection("exp_gain");
+        double baseGain = gainSec != null ? gainSec.getDouble("base", 8) : 8;
+        double weightFactor = gainSec != null ? gainSec.getDouble("weight_factor", 0.4) : 0.4;
+        double qteBonus = gainSec != null ? gainSec.getDouble("qte_bonus", 3) : 3;
+        baseGain = Double.parseDouble(params.getOrDefault("exp_gain_base", String.valueOf(baseGain)));
+        weightFactor = Double.parseDouble(
+            params.getOrDefault("exp_gain_weight_factor", String.valueOf(weightFactor)));
+        qteBonus = Double.parseDouble(
+            params.getOrDefault("exp_gain_qte_bonus", String.valueOf(qteBonus)));
+
+        this.levelService =
+            new LevelService(profileRepo, this, expBase, growthA, growthB, growthC, baseGain,
+                weightFactor, qteBonus);
 
         Map<Category, ScaleConf> scaling = new EnumMap<>(Category.class);
         var scaleSec = getConfig().getConfigurationSection("rare_weight_scaling");
@@ -140,8 +163,21 @@ public final class FishingPlugin extends JavaPlugin {
             }
         }
         Map<Category, Double> catWeights = new EnumMap<>(Category.class);
+        var baseCatSec = getConfig().getConfigurationSection("base_category_weights");
+        if (baseCatSec != null) {
+            for (String catKey : baseCatSec.getKeys(false)) {
+                try {
+                    Category cat = Category.valueOf(catKey.toUpperCase());
+                    double w = baseCatSec.getDouble(catKey);
+                    catWeights.put(cat, w);
+                } catch (IllegalArgumentException ignored) {
+                }
+            }
+        }
         for (Category cat : Category.values()) {
-            double w = Double.parseDouble(params.getOrDefault("category_weight_" + cat.name(), "1.0"));
+            double w = catWeights.getOrDefault(cat, 1.0);
+            w = Double.parseDouble(
+                params.getOrDefault("category_weight_" + cat.name(), String.valueOf(w)));
             catWeights.put(cat, w);
         }
         this.lootService = new LootService(scaling, catWeights);
@@ -165,15 +201,20 @@ public final class FishingPlugin extends JavaPlugin {
         double multiplier = 1.0;
         double tax = 0.0;
         String symbol = "$";
+        double maxPrice = 10000.0;
         if (econSec != null) {
             multiplier = econSec.getDouble("global_multiplier", 1.0);
             tax = econSec.getDouble("quicksell_tax", 0.0);
             symbol = econSec.getString("currency_symbol", "$");
+            maxPrice = econSec.getDouble("max_price", 10000.0);
         }
         multiplier = Double.parseDouble(params.getOrDefault("global_multiplier", String.valueOf(multiplier)));
         tax = Double.parseDouble(params.getOrDefault("quicksell_tax", String.valueOf(tax)));
         symbol = params.getOrDefault("currency_symbol", symbol);
-        this.quickSellService = new QuickSellService(this, lootService, economy, levelService, multiplier, tax, symbol);
+        maxPrice = Double.parseDouble(params.getOrDefault("max_price", String.valueOf(maxPrice)));
+        this.quickSellService =
+            new QuickSellService(this, lootService, economy, levelService, multiplier, tax, symbol,
+                maxPrice);
 
         var acSec = getConfig().getConfigurationSection("anti_cheat");
         int sampleSize = acSec != null ? acSec.getInt("sample_size", 5) : 5;

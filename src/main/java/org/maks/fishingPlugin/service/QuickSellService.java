@@ -25,15 +25,18 @@ public class QuickSellService {
   private double globalMultiplier;
   private double tax;
   private String currencySymbol;
+  private double maxItemPrice;
 
   public QuickSellService(JavaPlugin plugin, LootService lootService, Economy economy,
-      LevelService levelService, double globalMultiplier, double tax, String currencySymbol) {
+      LevelService levelService, double globalMultiplier, double tax, String currencySymbol,
+      double maxItemPrice) {
     this.lootService = lootService;
     this.economy = economy;
     this.levelService = levelService;
     this.globalMultiplier = globalMultiplier;
     this.tax = tax;
     this.currencySymbol = currencySymbol;
+    this.maxItemPrice = maxItemPrice;
     this.keyKey = new NamespacedKey(plugin, "loot-key");
     this.weightKey = new NamespacedKey(plugin, "weight-g");
     this.qualityKey = new NamespacedKey(plugin, "quality");
@@ -44,8 +47,13 @@ public class QuickSellService {
   }
 
   private double computePrice(LootEntry entry, double weight, int amount) {
-    return (entry.priceBase() + (weight / 1000.0) * entry.pricePerKg())
-        * entry.payoutMultiplier() * globalMultiplier * amount;
+    double perItem =
+        (entry.priceBase() + (weight / 1000.0) * entry.pricePerKg()) * entry.payoutMultiplier()
+            * globalMultiplier;
+    if (perItem > maxItemPrice) {
+      perItem = maxItemPrice;
+    }
+    return perItem * amount;
   }
 
   private double sell(Player player, java.util.function.Predicate<String> filter) {

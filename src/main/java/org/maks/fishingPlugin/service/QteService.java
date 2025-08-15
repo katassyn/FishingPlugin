@@ -22,6 +22,7 @@ public class QteService {
     long expiry;
     int remaining;
     boolean success;
+    boolean perfect;
 
     State(ClickType required, long start, long expiry, int remaining) {
       this.required = required;
@@ -30,6 +31,9 @@ public class QteService {
       this.remaining = remaining;
     }
   }
+
+  /** Result of a QTE attempt. */
+  public static record Result(boolean success, boolean perfect) {}
 
   private final Map<UUID, State> states = new ConcurrentHashMap<>();
   private final AntiCheatService antiCheat;
@@ -95,7 +99,9 @@ public class QteService {
     if (click == st.required) {
       st.remaining--;
       if (st.remaining <= 0) {
+        long window = st.expiry - st.start;
         st.success = true; // keep state until consume
+        st.perfect = (now - st.start) <= window / 4;
       } else {
         st.required = ThreadLocalRandom.current().nextBoolean() ? ClickType.LEFT : ClickType.RIGHT;
         long window = ThreadLocalRandom.current().nextLong(windowMin, windowMax + 1);
@@ -111,10 +117,12 @@ public class QteService {
   }
 
   /** Consume the QTE result when the player attempts to reel in. */
-  public boolean consume(Player player) {
+  public Result consume(Player player) {
     State st = states.remove(player.getUniqueId());
-    if (st == null) return false;
+    if (st == null) return new Result(false, false);
     long now = System.currentTimeMillis();
-    return st.success && now <= st.expiry;
+    boolean success = st.success && now <= st.expiry;
+    boolean perfect = success && st.perfect;
+    return new Result(success, perfect);
   }
 }

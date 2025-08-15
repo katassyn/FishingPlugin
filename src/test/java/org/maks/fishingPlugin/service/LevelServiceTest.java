@@ -21,7 +21,7 @@ public class LevelServiceTest {
         ProfileRepo repo = mock(ProfileRepo.class);
         JavaPlugin plugin = mock(JavaPlugin.class);
         when(plugin.getLogger()).thenReturn(Logger.getLogger("test"));
-        LevelService service = new LevelService(repo, plugin);
+        LevelService service = new LevelService(repo, plugin, 150, 1.12, 1.14, 1.16, 8, 0.4, 3);
 
         Player player = mock(Player.class);
         UUID id = UUID.randomUUID();

@@ -22,6 +22,26 @@ economy:
   currency_symbol: "$"
   quicksell_tax: 0.0
   global_multiplier: 1.0
+  max_price: 10000.0
+
+leveling:
+  exp_base: 150
+  growthA: 1.12
+  growthB: 1.14
+  growthC: 1.16
+
+exp_gain:
+  base: 8
+  weight_factor: 0.4
+  qte_bonus: 3
+
+base_category_weights:
+  FISH: 9500
+  FISH_PREMIUM: 350
+  RUNE: 80
+  TREASURE: 50
+  FISHERMAN_CHEST: 15
+  MATERIAL: 5
 
 warps:
   - key: fishing_main
