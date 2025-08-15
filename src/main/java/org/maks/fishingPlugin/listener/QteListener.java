@@ -2,10 +2,12 @@ package org.maks.fishingPlugin.listener;
 
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.maks.fishingPlugin.service.QteService;
 
-/** Captures movement during QTE windows. */
+
 public class QteListener implements Listener {
 
   private final QteService qte;
@@ -21,6 +23,7 @@ public class QteListener implements Listener {
         || event.getFrom().getBlockZ() != event.getTo().getBlockZ()) {
       qte.fail(event.getPlayer());
     }
+
   }
 
 }

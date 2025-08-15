@@ -9,8 +9,7 @@ import net.kyori.adventure.title.Title;
 import org.bukkit.entity.Player;
 
 /**
- * Simple QTE system requiring players to swing the crosshair left or right
- * before reeling in.
+
  */
 public class QteService {
 
@@ -55,7 +54,7 @@ public class QteService {
     long expiry = System.currentTimeMillis() + durationMs;
     states.put(player.getUniqueId(), new State(dir, startYaw, expiry));
     String bar = dir == Direction.LEFT ? "<<<<<<" : ">>>>>>";
-    String msg = dir == Direction.LEFT ? "Swipe left" : "Swipe right";
+    String msg = dir == Direction.LEFT ? "Click left" : "Click right";
     player.showTitle(Title.title(Component.text(bar), Component.text(msg)));
   }
 
@@ -64,6 +63,7 @@ public class QteService {
     State st = states.get(player.getUniqueId());
     if (st != null) {
       st.failed = true;
+
     }
   }
 

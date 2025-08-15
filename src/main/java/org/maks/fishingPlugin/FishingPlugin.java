@@ -168,6 +168,7 @@ public final class FishingPlugin extends JavaPlugin {
         scaling.put(Category.FISHERMAN_CHEST, new ScaleConf(ScaleMode.EXP, 0.0025, 0));
         scaling.put(Category.RUNE, new ScaleConf(ScaleMode.EXP, 0.0020, 0));
         scaling.put(Category.TREASURE_MAP, new ScaleConf(ScaleMode.EXP, 0.0020, 0));
+
         scaling.put(Category.TREASURE, new ScaleConf(ScaleMode.EXP, 0.0040, 0));
         var scaleSec = getConfig().getConfigurationSection("category_scaling");
         if (scaleSec != null) {
@@ -201,6 +202,7 @@ public final class FishingPlugin extends JavaPlugin {
         catWeights.put(Category.FISHERMAN_CHEST, 300d);
         catWeights.put(Category.RUNE, 80d);
         catWeights.put(Category.TREASURE_MAP, 80d);
+
         catWeights.put(Category.TREASURE, 8d);
         var weightSec = getConfig().getConfigurationSection("category_weights");
         if (weightSec != null) {
@@ -272,6 +274,7 @@ public final class FishingPlugin extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(
             new FishingListener(lootService, awarder, levelService, qteService, questService, requiredPlayerLevel,
                 antiCheatService, dropMult, craftChance, rodService), this);
+
         Bukkit.getPluginManager().registerEvents(new QteListener(qteService), this);
         Bukkit.getOnlinePlayers().forEach(p -> {
             levelService.loadProfile(p);
@@ -352,6 +355,7 @@ public final class FishingPlugin extends JavaPlugin {
             fish("Lionfish", Material.TROPICAL_FISH, 30, 180, 520, 1720, 1380),
             fish("Angelfish", Material.TROPICAL_FISH, 30, 170, 530, 1720, 1380),
             fish("Pufferfish", Material.PUFFERFISH, 20, 600, 2000, 100000, 0)
+
         };
         for (LootEntry e : defaults) {
             lootRepo.upsert(e);
