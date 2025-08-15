@@ -69,6 +69,7 @@ public class FishingListener implements Listener {
     try {
       loot = lootService.roll(rodLevel);
     } catch (IllegalStateException e) {
+
       return;
     }
     Awarder.AwardResult res = awarder.give(player, loot);

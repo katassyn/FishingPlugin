@@ -10,6 +10,7 @@ database:
 qte:
   chance: 0.25
   duration_ms: 1000
+  yaw_threshold: 1.0 # minimal yaw change to register success
 
 anti_cheat:
   sample_size: 5

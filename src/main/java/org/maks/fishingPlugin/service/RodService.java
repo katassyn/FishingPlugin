@@ -63,6 +63,7 @@ public class RodService {
     Component.Builder builder = Component.text().append(Component.text("[", NamedTextColor.GRAY));
     for (int i = 0; i < bars; i++) {
       builder.append(Component.text("█", i < filled ? NamedTextColor.GRAY : NamedTextColor.DARK_GRAY));
+
     }
     builder.append(Component.text("] " + xp + "/" + needed, NamedTextColor.GRAY));
     return builder.build();
@@ -92,6 +93,7 @@ public class RodService {
     meta.lore(List.of(
         Component.text("Level: " + level, NamedTextColor.GRAY),
         progressLine(xp, needed)));
+
     applyEnchants(meta, level);
   }
 
