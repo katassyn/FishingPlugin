@@ -203,12 +203,15 @@ public final class FishingPlugin extends JavaPlugin {
             new org.maks.fishingPlugin.integration.FishingExpansion(this).register();
         }
 
-        Bukkit.getPluginManager().registerEvents(new ProfileListener(levelService), this);
+        Bukkit.getPluginManager().registerEvents(new ProfileListener(levelService, antiCheatService), this);
         Bukkit.getPluginManager().registerEvents(
             new FishingListener(lootService, awarder, levelService, qteService, questService, requiredPlayerLevel,
                 antiCheatService, dropMult), this);
         Bukkit.getPluginManager().registerEvents(new QteListener(qteService), this);
-        Bukkit.getOnlinePlayers().forEach(levelService::loadProfile);
+        Bukkit.getOnlinePlayers().forEach(p -> {
+            levelService.loadProfile(p);
+            antiCheatService.deserialize(p.getUniqueId(), levelService.getLastQteSample(p));
+        });
 
         QuickSellMenu quickSellMenu = new QuickSellMenu(quickSellService);
         ShopMenu shopMenu = new ShopMenu(this, requiredPlayerLevel);
@@ -258,7 +261,11 @@ public final class FishingPlugin extends JavaPlugin {
     @Override
     public void onDisable() {
         if (levelService != null) {
-            Bukkit.getOnlinePlayers().forEach(levelService::saveProfile);
+            Bukkit.getOnlinePlayers().forEach(p -> {
+                levelService.setLastQteSample(p, antiCheatService.serialize(p.getUniqueId()));
+                levelService.saveProfile(p);
+                antiCheatService.reset(p.getUniqueId());
+            });
         }
         if (database != null) {
             database.close();

@@ -1,5 +1,6 @@
 package org.maks.fishingPlugin.service;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Map;
@@ -94,6 +95,39 @@ public class AntiCheatService {
   /** Consume penalty flag for player. */
   public boolean consumeFlag(UUID player) {
     return flagged.remove(player) != null;
+  }
+
+  /** Serialize stored samples for a player to a byte array. */
+  public byte[] serialize(UUID player) {
+    Long last = lastClick.get(player);
+    Deque<Long> deque = intervals.get(player);
+    if (last == null || deque == null || deque.isEmpty()) {
+      return null;
+    }
+    ByteBuffer buf = ByteBuffer.allocate(8 + deque.size() * 8);
+    buf.putLong(last);
+    for (long d : deque) {
+      buf.putLong(d);
+    }
+    return buf.array();
+  }
+
+  /** Restore stored samples for a player from a byte array. */
+  public void deserialize(UUID player, byte[] data) {
+    reset(player);
+    if (data == null || data.length < 8) {
+      return;
+    }
+    ByteBuffer buf = ByteBuffer.wrap(data);
+    long last = buf.getLong();
+    lastClick.put(player, last);
+    Deque<Long> deque = new ArrayDeque<>();
+    while (buf.remaining() >= 8) {
+      deque.addLast(buf.getLong());
+    }
+    if (!deque.isEmpty()) {
+      intervals.put(player, deque);
+    }
   }
 }
 

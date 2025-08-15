@@ -62,6 +62,20 @@ public class LevelService {
         new Profile(p.getUniqueId(), 0, 0, 0, 0, 0, 0, null, Instant.now(), Instant.now()));
   }
 
+  /** Get the stored anti-cheat sample for a player. */
+  public byte[] getLastQteSample(Player p) {
+    return profile(p).lastQteSample();
+  }
+
+  /** Update the stored anti-cheat sample for a player. */
+  public void setLastQteSample(Player p, byte[] sample) {
+    Profile old = profile(p);
+    profiles.put(p.getUniqueId(),
+        new Profile(p.getUniqueId(), old.rodLevel(), old.rodXp(), old.totalCatches(),
+            old.totalWeightG(), old.largestCatchG(), old.qsEarned(), sample,
+            old.createdAt(), Instant.now()));
+  }
+
   public int getLevel(Player p) {
     return profile(p).rodLevel();
   }
