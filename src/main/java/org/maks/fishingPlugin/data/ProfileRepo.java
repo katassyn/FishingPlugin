@@ -19,7 +19,8 @@ public class ProfileRepo {
 
   public Optional<Profile> find(UUID uuid) throws SQLException {
     String sql =
-        "SELECT player_uuid, rod_level, rod_xp, total_catches, total_weight_g, largest_catch_g "
+        "SELECT player_uuid, rod_level, rod_xp, total_catches, total_weight_g, "
+            + "largest_catch_g, qs_earned, last_qte_sample, created_at, updated_at "
             + "FROM fishing_profile WHERE player_uuid=?";
     try (Connection con = dataSource.getConnection();
          PreparedStatement ps = con.prepareStatement(sql)) {
@@ -33,7 +34,11 @@ public class ProfileRepo {
                   rs.getLong(3),
                   rs.getLong(4),
                   rs.getLong(5),
-                  rs.getLong(6)));
+                  rs.getLong(6),
+                  rs.getLong(7),
+                  rs.getBytes(8),
+                  rs.getTimestamp(9).toInstant(),
+                  rs.getTimestamp(10).toInstant()));
         }
         return Optional.empty();
       }
@@ -43,11 +48,13 @@ public class ProfileRepo {
   public void upsert(Profile profile) throws SQLException {
     String sql =
         "INSERT INTO fishing_profile(" +
-            "player_uuid, rod_level, rod_xp, total_catches, total_weight_g, largest_catch_g) " +
-            "VALUES(?,?,?,?,?,?) " +
+            "player_uuid, rod_level, rod_xp, total_catches, total_weight_g, largest_catch_g, " +
+            "qs_earned, last_qte_sample, created_at, updated_at) " +
+            "VALUES(?,?,?,?,?,?,?,?,?,?) " +
             "ON DUPLICATE KEY UPDATE rod_level=VALUES(rod_level), rod_xp=VALUES(rod_xp), " +
             "total_catches=VALUES(total_catches), total_weight_g=VALUES(total_weight_g), " +
-            "largest_catch_g=VALUES(largest_catch_g)";
+            "largest_catch_g=VALUES(largest_catch_g), qs_earned=VALUES(qs_earned), " +
+            "last_qte_sample=VALUES(last_qte_sample), updated_at=VALUES(updated_at)";
     try (Connection con = dataSource.getConnection();
          PreparedStatement ps = con.prepareStatement(sql)) {
       ps.setString(1, profile.playerUuid().toString());
@@ -56,6 +63,10 @@ public class ProfileRepo {
       ps.setLong(4, profile.totalCatches());
       ps.setLong(5, profile.totalWeightG());
       ps.setLong(6, profile.largestCatchG());
+      ps.setLong(7, profile.qsEarned());
+      ps.setBytes(8, profile.lastQteSample());
+      ps.setTimestamp(9, java.sql.Timestamp.from(profile.createdAt()));
+      ps.setTimestamp(10, java.sql.Timestamp.from(profile.updatedAt()));
       ps.executeUpdate();
     }
   }

@@ -48,11 +48,22 @@ public class DatabaseIntegrationTest {
         DataSource ds = database.getDataSource();
         ProfileRepo repo = new ProfileRepo(ds);
         UUID id = UUID.randomUUID();
-        Profile profile = new Profile(id, 5, 10L, 2L, 1500L, 800L);
+        Profile profile = new Profile(id, 5, 10L, 2L, 1500L, 800L, 0L, null,
+                java.time.Instant.now(), java.time.Instant.now());
         repo.upsert(profile);
         Optional<Profile> loaded = repo.find(id);
         assertTrue(loaded.isPresent());
-        assertEquals(profile, loaded.get());
+        Profile lp = loaded.get();
+        assertEquals(profile.playerUuid(), lp.playerUuid());
+        assertEquals(profile.rodLevel(), lp.rodLevel());
+        assertEquals(profile.rodXp(), lp.rodXp());
+        assertEquals(profile.totalCatches(), lp.totalCatches());
+        assertEquals(profile.totalWeightG(), lp.totalWeightG());
+        assertEquals(profile.largestCatchG(), lp.largestCatchG());
+        assertEquals(profile.qsEarned(), lp.qsEarned());
+        assertArrayEquals(profile.lastQteSample(), lp.lastQteSample());
+        assertNotNull(lp.createdAt());
+        assertNotNull(lp.updatedAt());
     }
 
     @Test
