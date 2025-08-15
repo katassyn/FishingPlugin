@@ -31,11 +31,17 @@ public class QteService {
   private final Map<UUID, State> states = new ConcurrentHashMap<>();
   private final double chance;
   private final long durationMs;
-  private final float yawThreshold = 40f;
+  private final float yawThreshold;
 
-  public QteService(double chance, long durationMs) {
+  /**
+   * @param chance chance a QTE will be triggered when a fish bites
+   * @param durationMs how long the player has to respond
+   * @param yawThreshold minimum yaw change to register a successful swipe
+   */
+  public QteService(double chance, long durationMs, float yawThreshold) {
     this.chance = chance;
     this.durationMs = durationMs;
+    this.yawThreshold = yawThreshold;
   }
 
   /** Start a QTE with some probability when a fish bites. */
