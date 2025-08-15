@@ -68,10 +68,19 @@ public class QteService {
       return;
     }
     float diff = toYaw - st.startYaw;
+    diff = (diff + 540) % 360 - 180; // normalize to [-180,180]
     if (st.required == Direction.LEFT && diff <= -yawThreshold) {
       st.success = true;
     } else if (st.required == Direction.RIGHT && diff >= yawThreshold) {
       st.success = true;
+    }
+  }
+
+  /** Mark current QTE as failed due to player movement. */
+  public void fail(Player player) {
+    State st = states.get(player.getUniqueId());
+    if (st != null) {
+      st.success = false;
     }
   }
 
