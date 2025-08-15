@@ -59,12 +59,12 @@ public class FishingListener implements Listener {
     }
     event.setCancelled(true);
     if (!qteService.consume(player)) {
-      player.sendMessage("Branie uciekło!");
+      player.sendMessage("The fish got away!");
       return;
     }
     boolean penalized = antiCheat.consumeFlag(player.getUniqueId());
     if (penalized && ThreadLocalRandom.current().nextDouble() > dropMultiplier) {
-      player.sendMessage("Podejrzane kliknięcia - nic nie złapałeś.");
+      player.sendMessage("Suspicious clicks - you caught nothing.");
       return;
     }
     int rodLevel = levelService.getLevel(player);
