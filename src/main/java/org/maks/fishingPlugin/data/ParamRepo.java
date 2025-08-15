@@ -30,7 +30,7 @@ public class ParamRepo {
   }
 
   public Map<String, String> findAll() throws SQLException {
-    String sql = "SELECT key, value FROM fishing_param";
+    String sql = "SELECT `key`, value FROM fishing_param";
     Map<String, String> map = new HashMap<>();
     try (Connection con = dataSource.getConnection();
          PreparedStatement ps = con.prepareStatement(sql);
@@ -44,7 +44,7 @@ public class ParamRepo {
 
   /** Insert or update a parameter. */
   public void set(String key, String value) throws SQLException {
-    String sql = "INSERT INTO fishing_param(key, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value=VALUES(value)";
+    String sql = "INSERT INTO fishing_param(`key`, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value=VALUES(value)";
     try (Connection con = dataSource.getConnection();
          PreparedStatement ps = con.prepareStatement(sql)) {
       ps.setString(1, key);

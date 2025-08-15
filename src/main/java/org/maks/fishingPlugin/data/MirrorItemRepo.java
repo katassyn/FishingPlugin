@@ -34,7 +34,7 @@ public class MirrorItemRepo {
   }
 
   public List<MirrorItem> findAll() throws SQLException {
-    String sql = "SELECT key, category, broadcast, item_base64 FROM fishing_mirror_item";
+    String sql = "SELECT `key`, category, broadcast, item_base64 FROM fishing_mirror_item";
     try (Connection con = dataSource.getConnection();
          PreparedStatement ps = con.prepareStatement(sql);
          ResultSet rs = ps.executeQuery()) {
