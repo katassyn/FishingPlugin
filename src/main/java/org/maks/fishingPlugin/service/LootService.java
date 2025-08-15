@@ -72,7 +72,11 @@ public class LootService {
     return byKey.get(key);
   }
 
-  double effectiveWeight(LootEntry e, int rodLevel) {
+  /**
+   * Calculates the effective weight for the given loot entry at the specified
+   * rod level after applying category scaling and level requirements.
+   */
+  public double effectiveWeight(LootEntry e, int rodLevel) {
     if (rodLevel < e.minRodLevel()) {
       return 0.0;
     }
