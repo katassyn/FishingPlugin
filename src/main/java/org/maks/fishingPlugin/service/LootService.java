@@ -19,10 +19,12 @@ public class LootService {
 
   private final List<LootEntry> entries = new ArrayList<>();
   private final Map<Category, ScaleConf> scaling;
+  private final Map<Category, Double> baseCategoryWeights;
   private final Map<String, LootEntry> byKey = new java.util.HashMap<>();
 
-  public LootService(Map<Category, ScaleConf> scaling) {
+  public LootService(Map<Category, ScaleConf> scaling, Map<Category, Double> baseCategoryWeights) {
     this.scaling = new EnumMap<>(scaling);
+    this.baseCategoryWeights = new EnumMap<>(baseCategoryWeights);
   }
 
   /** Register a loot entry. */
@@ -63,8 +65,23 @@ public class LootService {
     if (entries.isEmpty()) {
       throw new IllegalStateException("No loot entries registered");
     }
-    WeightedPicker<LootEntry> picker = new WeightedPicker<>(entries,
-        e -> effectiveWeight(e, rodLevel));
+
+    Map<Category, List<LootEntry>> byCat = new EnumMap<>(Category.class);
+    for (LootEntry e : entries) {
+      double w = effectiveWeight(e, rodLevel);
+      if (w > 0) {
+        byCat.computeIfAbsent(e.category(), k -> new ArrayList<>()).add(e);
+      }
+    }
+    if (byCat.isEmpty()) {
+      throw new IllegalStateException("No loot entries available for rod level");
+    }
+    List<Category> cats = new ArrayList<>(byCat.keySet());
+    WeightedPicker<Category> catPicker =
+        new WeightedPicker<>(cats, c -> baseCategoryWeights.getOrDefault(c, 1.0));
+    Category picked = catPicker.pick(ThreadLocalRandom.current());
+    WeightedPicker<LootEntry> picker =
+        new WeightedPicker<>(byCat.get(picked), e -> effectiveWeight(e, rodLevel));
     return picker.pick(ThreadLocalRandom.current());
   }
 
@@ -83,5 +100,13 @@ public class LootService {
     ScaleConf conf = scaling.get(e.category());
     double base = e.baseWeight();
     return conf == null ? base : base * conf.mult(rodLevel);
+  }
+
+  public double getBaseCategoryWeight(Category cat) {
+    return baseCategoryWeights.getOrDefault(cat, 1.0);
+  }
+
+  public void setBaseCategoryWeight(Category cat, double weight) {
+    baseCategoryWeights.put(cat, weight);
   }
 }

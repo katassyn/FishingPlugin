@@ -63,7 +63,7 @@ public class AdminLootEditorMenu implements Listener {
     this.mirrorItemService = mirrorItemService;
   }
 
-  enum Type { MAIN, WEIGHTS, SCALING, ECON, MIRROR_ADD, MIRROR_SELECT }
+  enum Type { MAIN, WEIGHTS, CAT_WEIGHTS, SCALING, ECON, MIRROR_ADD, MIRROR_SELECT }
 
   private static final int[] PREVIEW_LEVELS = {0, 50, 100};
 
@@ -80,11 +80,12 @@ public class AdminLootEditorMenu implements Listener {
   private Inventory mainInv() {
     Inventory inv = Bukkit.createInventory(new Holder(Type.MAIN), 27, "Admin Editor");
     inv.setItem(10, button(Material.GREEN_WOOL, "Add From Hand"));
-    inv.setItem(12, button(Material.ANVIL, "Edit Weights"));
+    inv.setItem(12, button(Material.ANVIL, "Edit Entry Weights"));
     inv.setItem(14, button(Material.BOOK, "Edit Scaling"));
     inv.setItem(16, button(Material.PAPER, "Edit Quests"));
     inv.setItem(18, button(Material.GLASS, "Add Mirror Item"));
     inv.setItem(20, button(Material.SUNFLOWER, "Edit Economy"));
+    inv.setItem(22, button(Material.CHEST, "Edit Category Weights"));
     return inv;
   }
 
@@ -112,6 +113,31 @@ public class AdminLootEditorMenu implements Listener {
       map.put(slot, e);
       slot++;
       if (slot >= 53) break;
+    }
+    inv.setItem(53, button(Material.BARRIER, "Back"));
+    return inv;
+  }
+
+  private Inventory catWeightsInv() {
+    Map<Integer, Category> map = new HashMap<>();
+    Inventory inv = Bukkit.createInventory(new Holder(Type.CAT_WEIGHTS, new HashMap<>(), map), 54,
+        "Category Weights");
+    int slot = 0;
+    for (Category cat : Category.values()) {
+      ItemStack item = new ItemStack(Material.PAPER);
+      ItemMeta meta = item.getItemMeta();
+      if (meta != null) {
+        meta.displayName(Component.text(cat.name()));
+        java.util.List<Component> lore = new java.util.ArrayList<>();
+        lore.add(Component.text(
+            "Weight: " + String.format("%.2f", lootService.getBaseCategoryWeight(cat))));
+        lore.add(Component.text("Left +1, Right -1"));
+        meta.lore(lore);
+        item.setItemMeta(meta);
+      }
+      inv.setItem(slot, item);
+      map.put(slot, cat);
+      slot++;
     }
     inv.setItem(53, button(Material.BARRIER, "Back"));
     return inv;
@@ -286,6 +312,10 @@ public class AdminLootEditorMenu implements Listener {
     player.openInventory(scalingInv());
   }
 
+  private void openCatWeights(Player player) {
+    player.openInventory(catWeightsInv());
+  }
+
   private void openEconomy(Player player) {
     player.openInventory(economyInv());
   }
@@ -348,6 +378,16 @@ public class AdminLootEditorMenu implements Listener {
       lootRepo.upsert(updated);
     } catch (SQLException ex) {
       player.sendMessage("DB error: " + ex.getMessage());
+    }
+  }
+
+  private void adjustCategoryWeight(Player player, Category cat, double delta) {
+    double newWeight = Math.max(0.0, lootService.getBaseCategoryWeight(cat) + delta);
+    lootService.setBaseCategoryWeight(cat, newWeight);
+    try {
+      paramRepo.set("category_weight_" + cat.name(), String.valueOf(newWeight));
+    } catch (SQLException e) {
+      player.sendMessage("DB error: " + e.getMessage());
     }
   }
 
@@ -421,6 +461,8 @@ public class AdminLootEditorMenu implements Listener {
           openMirrorAdd(player);
         } else if (slot == 20) {
           openEconomy(player);
+        } else if (slot == 22) {
+          openCatWeights(player);
         }
       }
       case WEIGHTS -> {
@@ -433,6 +475,18 @@ public class AdminLootEditorMenu implements Listener {
           double delta = event.getClick() == ClickType.RIGHT ? -1.0 : 1.0;
           adjustWeight(player, e, delta);
           openWeights(player);
+        }
+      }
+      case CAT_WEIGHTS -> {
+        if (event.getRawSlot() == 53) {
+          open(player);
+          return;
+        }
+        Category cat = holder.scaleMap.get(event.getRawSlot());
+        if (cat != null) {
+          double delta = event.getClick() == ClickType.RIGHT ? -1.0 : 1.0;
+          adjustCategoryWeight(player, cat, delta);
+          openCatWeights(player);
         }
       }
       case SCALING -> {
