@@ -1,5 +1,12 @@
 player_level_requirement: 80
 
+database:
+  host: localhost
+  port: 3306
+  name: fishing
+  user: root
+  password: ""
+
 qte:
   clicks: 1
   window_ms: 1000

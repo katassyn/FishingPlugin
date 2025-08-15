@@ -18,7 +18,7 @@ public class ProfileRepo {
   }
 
   public Optional<Profile> find(UUID uuid) throws SQLException {
-    String sql = "SELECT player_uuid, rod_level, rod_xp FROM profile WHERE player_uuid=?";
+    String sql = "SELECT player_uuid, rod_level, rod_xp FROM fishing_profile WHERE player_uuid=?";
     try (Connection con = dataSource.getConnection();
          PreparedStatement ps = con.prepareStatement(sql)) {
       ps.setString(1, uuid.toString());
@@ -32,7 +32,9 @@ public class ProfileRepo {
   }
 
   public void upsert(Profile profile) throws SQLException {
-    String sql = "MERGE INTO profile(player_uuid, rod_level, rod_xp) KEY(player_uuid) VALUES(?,?,?)";
+    String sql =
+        "INSERT INTO fishing_profile(player_uuid, rod_level, rod_xp) VALUES(?,?,?) " +
+        "ON DUPLICATE KEY UPDATE rod_level=VALUES(rod_level), rod_xp=VALUES(rod_xp)";
     try (Connection con = dataSource.getConnection();
          PreparedStatement ps = con.prepareStatement(sql)) {
       ps.setString(1, profile.playerUuid().toString());

@@ -75,7 +75,14 @@ public final class FishingPlugin extends JavaPlugin {
         this.hasWorldGuard = pm.getPlugin("WorldGuard") != null;
         this.hasCitizens = pm.getPlugin("Citizens") != null;
 
-        this.database = new Database("jdbc:h2:./data/fishing", "sa", "");
+        var dbSec = getConfig().getConfigurationSection("database");
+        String host = dbSec != null ? dbSec.getString("host", "localhost") : "localhost";
+        int port = dbSec != null ? dbSec.getInt("port", 3306) : 3306;
+        String dbName = dbSec != null ? dbSec.getString("name", "fishing") : "fishing";
+        String user = dbSec != null ? dbSec.getString("user", "root") : "root";
+        String pass = dbSec != null ? dbSec.getString("password", "") : "";
+        String jdbcUrl = String.format("jdbc:mysql://%s:%d/%s", host, port, dbName);
+        this.database = new Database(jdbcUrl, user, pass);
         DataSource ds = database.getDataSource();
         Flyway.configure().dataSource(ds).load().migrate();
         this.lootRepo = new LootRepo(ds);

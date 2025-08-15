@@ -19,7 +19,7 @@ public class QuestProgressRepo {
   }
 
   public Optional<QuestProgress> find(UUID uuid) throws SQLException {
-    String sql = "SELECT player_uuid, stage, count FROM quests_chain_progress WHERE player_uuid=?";
+    String sql = "SELECT player_uuid, stage, count FROM fishing_quests_chain_progress WHERE player_uuid=?";
     try (Connection con = dataSource.getConnection();
          PreparedStatement ps = con.prepareStatement(sql)) {
       ps.setString(1, uuid.toString());
@@ -36,7 +36,8 @@ public class QuestProgressRepo {
   /** Insert or update player quest progress. */
   public void upsert(QuestProgress progress) throws SQLException {
     String sql =
-        "MERGE INTO quests_chain_progress(player_uuid, stage, count) KEY(player_uuid) VALUES(?,?,?)";
+        "INSERT INTO fishing_quests_chain_progress(player_uuid, stage, count) VALUES(?,?,?) " +
+            "ON DUPLICATE KEY UPDATE stage=VALUES(stage), count=VALUES(count)";
     try (Connection con = dataSource.getConnection();
          PreparedStatement ps = con.prepareStatement(sql)) {
       ps.setString(1, progress.playerUuid().toString());
