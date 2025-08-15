@@ -36,4 +36,20 @@ public class MirrorItemRepo {
       return list;
     }
   }
+
+  /** Insert or update a mirror item definition. */
+  public void upsert(MirrorItem item) throws SQLException {
+    String sql =
+        "INSERT INTO fishing_mirror_item(`key`,category,broadcast,item_base64) VALUES (?,?,?,?) " +
+            "ON DUPLICATE KEY UPDATE category=VALUES(category), broadcast=VALUES(broadcast), " +
+            "item_base64=VALUES(item_base64)";
+    try (Connection con = dataSource.getConnection();
+         PreparedStatement ps = con.prepareStatement(sql)) {
+      ps.setString(1, item.key());
+      ps.setString(2, item.category().name());
+      ps.setBoolean(3, item.broadcast());
+      ps.setString(4, item.itemBase64());
+      ps.executeUpdate();
+    }
+  }
 }

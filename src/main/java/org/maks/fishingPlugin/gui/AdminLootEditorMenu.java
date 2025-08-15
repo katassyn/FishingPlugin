@@ -21,12 +21,15 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 import net.kyori.adventure.text.Component;
 import org.maks.fishingPlugin.data.LootRepo;
+import org.maks.fishingPlugin.data.MirrorItemRepo;
 import org.maks.fishingPlugin.data.ParamRepo;
 import org.maks.fishingPlugin.model.Category;
 import org.maks.fishingPlugin.model.LootEntry;
+import org.maks.fishingPlugin.model.MirrorItem;
 import org.maks.fishingPlugin.model.ScaleConf;
 import org.maks.fishingPlugin.model.ScaleMode;
 import org.maks.fishingPlugin.service.LootService;
+import org.maks.fishingPlugin.service.MirrorItemService;
 import org.maks.fishingPlugin.service.QuickSellService;
 import org.maks.fishingPlugin.util.ItemSerialization;
 
@@ -39,21 +42,28 @@ public class AdminLootEditorMenu implements Listener {
   private final ParamRepo paramRepo;
   private final QuickSellService quickSellService;
   private final AdminQuestEditorMenu questMenu;
+  private final MirrorItemRepo mirrorItemRepo;
+  private final MirrorItemService mirrorItemService;
 
   /** Pending chat editors mapped by player for economy parameters. */
   private final Map<UUID, Consumer<String>> editors = new HashMap<>();
+  /** Mirror item editor state per player. */
+  private final Map<UUID, MirrorData> mirrorEditors = new HashMap<>();
 
   public AdminLootEditorMenu(JavaPlugin plugin, LootService lootService, LootRepo lootRepo,
-      ParamRepo paramRepo, QuickSellService quickSellService, AdminQuestEditorMenu questMenu) {
+      ParamRepo paramRepo, QuickSellService quickSellService, AdminQuestEditorMenu questMenu,
+      MirrorItemRepo mirrorItemRepo, MirrorItemService mirrorItemService) {
     this.plugin = plugin;
     this.lootService = lootService;
     this.lootRepo = lootRepo;
     this.paramRepo = paramRepo;
     this.quickSellService = quickSellService;
     this.questMenu = questMenu;
+    this.mirrorItemRepo = mirrorItemRepo;
+    this.mirrorItemService = mirrorItemService;
   }
 
-  enum Type { MAIN, WEIGHTS, SCALING, ECON }
+  enum Type { MAIN, WEIGHTS, SCALING, ECON, MIRROR_ADD, MIRROR_SELECT }
 
   private static final int[] PREVIEW_LEVELS = {0, 50, 100};
 
@@ -73,6 +83,7 @@ public class AdminLootEditorMenu implements Listener {
     inv.setItem(12, button(Material.ANVIL, "Edit Weights"));
     inv.setItem(14, button(Material.BOOK, "Edit Scaling"));
     inv.setItem(16, button(Material.PAPER, "Edit Quests"));
+    inv.setItem(18, button(Material.GLASS, "Add Mirror Item"));
     inv.setItem(20, button(Material.SUNFLOWER, "Edit Economy"));
     return inv;
   }
@@ -198,6 +209,70 @@ public class AdminLootEditorMenu implements Listener {
     return inv;
   }
 
+  private Inventory mirrorInv(Player player) {
+    MirrorData data = mirrorEditors.computeIfAbsent(player.getUniqueId(), k -> new MirrorData());
+    Inventory inv = Bukkit.createInventory(new Holder(Type.MIRROR_ADD), 27, "Mirror Item");
+
+    ItemStack cat = new ItemStack(Material.PAPER);
+    ItemMeta cMeta = cat.getItemMeta();
+    if (cMeta != null) {
+      cMeta.displayName(Component.text("Category: " + data.category.name()));
+      cMeta.lore(java.util.List.of(Component.text("Click to cycle")));
+      cat.setItemMeta(cMeta);
+    }
+    inv.setItem(10, cat);
+
+    ItemStack bc = new ItemStack(data.broadcast ? Material.LIME_DYE : Material.GRAY_DYE);
+    ItemMeta bMeta = bc.getItemMeta();
+    if (bMeta != null) {
+      bMeta.displayName(Component.text("Broadcast: " + (data.broadcast ? "Yes" : "No")));
+      bMeta.lore(java.util.List.of(Component.text("Click to toggle")));
+      bc.setItemMeta(bMeta);
+    }
+    inv.setItem(12, bc);
+
+    ItemStack key = new ItemStack(Material.NAME_TAG);
+    ItemMeta kMeta = key.getItemMeta();
+    if (kMeta != null) {
+      kMeta.displayName(Component.text("Loot Key"));
+      java.util.List<Component> lore = new java.util.ArrayList<>();
+      lore.add(Component.text(data.key == null ? "None" : data.key));
+      lore.add(Component.text("Click to select"));
+      kMeta.lore(lore);
+      key.setItemMeta(kMeta);
+    }
+    inv.setItem(14, key);
+
+    inv.setItem(16, button(Material.GREEN_WOOL, "Save"));
+    inv.setItem(26, button(Material.BARRIER, "Back"));
+    return inv;
+  }
+
+  private Inventory mirrorSelectInv() {
+    Map<Integer, LootEntry> map = new HashMap<>();
+    Inventory inv = Bukkit.createInventory(new Holder(Type.MIRROR_SELECT, map), 54, "Select Loot");
+    int slot = 0;
+    for (LootEntry e : lootService.getEntries()) {
+      ItemStack item;
+      try {
+        item = ItemSerialization.fromBase64(e.itemBase64());
+      } catch (Exception ex) {
+        item = new ItemStack(Material.PAPER);
+      }
+      ItemMeta meta = item.getItemMeta();
+      if (meta != null) {
+        meta.displayName(Component.text(e.key()));
+        item.setItemMeta(meta);
+      }
+      inv.setItem(slot, item);
+      map.put(slot, e);
+      slot++;
+      if (slot >= 53) break;
+    }
+    inv.setItem(53, button(Material.BARRIER, "Back"));
+    return inv;
+  }
+
   /** Open the admin menu. */
   public void open(Player player) {
     player.openInventory(mainInv());
@@ -213,6 +288,14 @@ public class AdminLootEditorMenu implements Listener {
 
   private void openEconomy(Player player) {
     player.openInventory(economyInv());
+  }
+
+  private void openMirrorAdd(Player player) {
+    player.openInventory(mirrorInv(player));
+  }
+
+  private void openMirrorSelect(Player player) {
+    player.openInventory(mirrorSelectInv());
   }
 
   private void addFromHand(Player player) {
@@ -231,6 +314,28 @@ public class AdminLootEditorMenu implements Listener {
       player.sendMessage("DB error: " + e.getMessage());
     }
     player.sendMessage("Added loot entry " + key);
+  }
+
+  private void saveMirror(Player player) {
+    MirrorData data = mirrorEditors.get(player.getUniqueId());
+    if (data == null || data.key == null) {
+      player.sendMessage("Select loot entry first.");
+      return;
+    }
+    ItemStack item = player.getInventory().getItemInMainHand();
+    if (item == null || item.getType().isAir()) {
+      player.sendMessage("Hold an item in your hand.");
+      return;
+    }
+    MirrorItem mi = new MirrorItem(data.key, data.category, data.broadcast,
+        ItemSerialization.toBase64(item));
+    mirrorItemService.add(mi);
+    try {
+      mirrorItemRepo.upsert(mi);
+    } catch (SQLException e) {
+      player.sendMessage("DB error: " + e.getMessage());
+    }
+    player.sendMessage("Added mirror item for " + data.key);
   }
 
   private void adjustWeight(Player player, LootEntry e, double delta) {
@@ -312,6 +417,8 @@ public class AdminLootEditorMenu implements Listener {
           openScaling(player);
         } else if (slot == 16) {
           questMenu.open(player);
+        } else if (slot == 18) {
+          openMirrorAdd(player);
         } else if (slot == 20) {
           openEconomy(player);
         }
@@ -381,6 +488,39 @@ public class AdminLootEditorMenu implements Listener {
           player.sendMessage("Enter currency symbol in chat");
         }
       }
+      case MIRROR_ADD -> {
+        int slot = event.getRawSlot();
+        MirrorData data = mirrorEditors.computeIfAbsent(player.getUniqueId(), k -> new MirrorData());
+        if (slot == 26) {
+          open(player);
+          return;
+        }
+        if (slot == 10) {
+          Category[] cats = Category.values();
+          data.category = cats[(data.category.ordinal() + 1) % cats.length];
+          openMirrorAdd(player);
+        } else if (slot == 12) {
+          data.broadcast = !data.broadcast;
+          openMirrorAdd(player);
+        } else if (slot == 14) {
+          openMirrorSelect(player);
+        } else if (slot == 16) {
+          saveMirror(player);
+          open(player);
+        }
+      }
+      case MIRROR_SELECT -> {
+        if (event.getRawSlot() == 53) {
+          openMirrorAdd(player);
+          return;
+        }
+        LootEntry e = holder.weightMap.get(event.getRawSlot());
+        if (e != null) {
+          MirrorData data = mirrorEditors.computeIfAbsent(player.getUniqueId(), k -> new MirrorData());
+          data.key = e.key();
+          openMirrorAdd(player);
+        }
+      }
     }
   }
 
@@ -397,6 +537,12 @@ public class AdminLootEditorMenu implements Listener {
       event.getPlayer().sendMessage("Updated.");
       openEconomy(event.getPlayer());
     });
+  }
+
+  private static class MirrorData {
+    Category category = Category.FISH;
+    boolean broadcast = false;
+    String key;
   }
 
   private static class Holder implements InventoryHolder {

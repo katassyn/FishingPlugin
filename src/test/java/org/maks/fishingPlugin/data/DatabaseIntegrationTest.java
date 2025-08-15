@@ -12,6 +12,8 @@ import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.maks.fishingPlugin.model.MirrorItem;
+import org.maks.fishingPlugin.model.Category;
 
 /** Integration test verifying MySQL migrations and data access. */
 public class DatabaseIntegrationTest {
@@ -51,5 +53,22 @@ public class DatabaseIntegrationTest {
         Optional<Profile> loaded = repo.find(id);
         assertTrue(loaded.isPresent());
         assertEquals(profile, loaded.get());
+    }
+
+    @Test
+    void testMirrorItemUpsert() throws SQLException {
+        DataSource ds = database.getDataSource();
+        MirrorItemRepo repo = new MirrorItemRepo(ds);
+        MirrorItem item = new MirrorItem("key1", Category.FISH, true, "data");
+        repo.upsert(item);
+        java.util.List<MirrorItem> all = repo.findAll();
+        assertEquals(1, all.size());
+        assertEquals(item, all.get(0));
+
+        MirrorItem updated = new MirrorItem("key1", Category.TREASURE, false, "data2");
+        repo.upsert(updated);
+        all = repo.findAll();
+        assertEquals(1, all.size());
+        assertEquals(updated, all.get(0));
     }
 }
