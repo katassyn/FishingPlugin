@@ -91,6 +91,31 @@ public class LootService {
     return picker.pick(ThreadLocalRandom.current());
   }
 
+  /**
+   * Rolls loot for the admin rod: only non-fish categories with equal weights
+   * and ignoring level requirements.
+   */
+  public LootEntry rollAdmin() {
+    if (entries.isEmpty()) {
+      throw new IllegalStateException("No loot entries registered");
+    }
+    Map<Category, List<LootEntry>> byCat = new EnumMap<>(Category.class);
+    for (LootEntry e : entries) {
+      if (e.category() == Category.FISH) {
+        continue;
+      }
+      byCat.computeIfAbsent(e.category(), k -> new ArrayList<>()).add(e);
+    }
+    List<Category> cats = new ArrayList<>(byCat.keySet());
+    if (cats.isEmpty()) {
+      throw new IllegalStateException("No loot entries available for admin rod");
+    }
+    Category picked = cats.get(ThreadLocalRandom.current().nextInt(cats.size()));
+    WeightedPicker<LootEntry> picker =
+        new WeightedPicker<>(byCat.get(picked), LootEntry::baseWeight);
+    return picker.pick(ThreadLocalRandom.current());
+  }
+
   public LootEntry getEntry(String key) {
     return byKey.get(key);
   }
@@ -100,7 +125,7 @@ public class LootService {
    * rod level after applying category scaling and level requirements.
    */
   private double effectiveCategoryWeight(Category cat, int rodLevel) {
-    if (cat == Category.RUNE && rodLevel < 25) {
+    if ((cat == Category.RUNE || cat == Category.TREASURE_MAP) && rodLevel < 25) {
       return 0.0;
     }
     if (cat == Category.TREASURE && rodLevel < 50) {

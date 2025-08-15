@@ -7,12 +7,8 @@ import java.util.List;
 import java.util.Map;
 import javax.sql.DataSource;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Material;
-import org.bukkit.enchantments.Enchantment;
-import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.maks.fishingPlugin.command.FishingCommand;
 import org.maks.fishingPlugin.data.Database;
@@ -49,6 +45,7 @@ import org.maks.fishingPlugin.gui.AdminLootEditorMenu;
 import org.maks.fishingPlugin.gui.AdminQuestEditorMenu;
 import org.maks.fishingPlugin.command.QuickSellCommand;
 import org.maks.fishingPlugin.command.GiveRodCommand;
+import org.maks.fishingPlugin.command.AdminRodCommand;
 import net.milkbowl.vault.economy.Economy;
 
 public final class FishingPlugin extends JavaPlugin {
@@ -136,18 +133,20 @@ public final class FishingPlugin extends JavaPlugin {
         double fishPerKg = 0.5;
         double chestBase = 22;
         double runeBase = 40;
+        double mapBase = 40;
         double treasureBase = 80;
         if (gainSec != null) {
             fishBase = gainSec.getDouble("fish_base", fishBase);
             fishPerKg = gainSec.getDouble("fish_per_kg", fishPerKg);
             chestBase = gainSec.getDouble("chest_base", chestBase);
             runeBase = gainSec.getDouble("rune_base", runeBase);
+            mapBase = gainSec.getDouble("map_base", mapBase);
             treasureBase = gainSec.getDouble("treasure_base", treasureBase);
         }
 
         this.levelService = new LevelService(profileRepo, this,
             expBase, expCoeff, expPower,
-            fishBase, fishPerKg, chestBase, runeBase, treasureBase);
+            fishBase, fishPerKg, chestBase, runeBase, mapBase, treasureBase);
 
         this.mirrorItemService = new MirrorItemService();
         this.rodService = new RodService(this, levelService);
@@ -165,6 +164,11 @@ public final class FishingPlugin extends JavaPlugin {
             String.valueOf(getConfig().getInt("player_level_requirement", 80))));
 
         Map<Category, ScaleConf> scaling = new EnumMap<>(Category.class);
+        scaling.put(Category.FISH, new ScaleConf(ScaleMode.EXP, 0.0006, 0));
+        scaling.put(Category.FISHERMAN_CHEST, new ScaleConf(ScaleMode.EXP, 0.0025, 0));
+        scaling.put(Category.RUNE, new ScaleConf(ScaleMode.EXP, 0.0020, 0));
+        scaling.put(Category.TREASURE_MAP, new ScaleConf(ScaleMode.EXP, 0.0020, 0));
+        scaling.put(Category.TREASURE, new ScaleConf(ScaleMode.EXP, 0.0040, 0));
         var scaleSec = getConfig().getConfigurationSection("category_scaling");
         if (scaleSec != null) {
             for (String catKey : scaleSec.getKeys(false)) {
@@ -193,6 +197,11 @@ public final class FishingPlugin extends JavaPlugin {
             }
         }
         Map<Category, Double> catWeights = new EnumMap<>(Category.class);
+        catWeights.put(Category.FISH, 9520d);
+        catWeights.put(Category.FISHERMAN_CHEST, 300d);
+        catWeights.put(Category.RUNE, 80d);
+        catWeights.put(Category.TREASURE_MAP, 80d);
+        catWeights.put(Category.TREASURE, 8d);
         var weightSec = getConfig().getConfigurationSection("category_weights");
         if (weightSec != null) {
             for (String catKey : weightSec.getKeys(false)) {
@@ -205,7 +214,7 @@ public final class FishingPlugin extends JavaPlugin {
         }
         for (Category cat : Category.values()) {
             double w = Double.parseDouble(params.getOrDefault("category_weight_" + cat.name(),
-                String.valueOf(catWeights.getOrDefault(cat, 1.0))));
+                String.valueOf(catWeights.get(cat))));
             catWeights.put(cat, w);
         }
         this.lootService = new LootService(scaling, catWeights);
@@ -243,6 +252,7 @@ public final class FishingPlugin extends JavaPlugin {
         int sampleSize = acSec != null ? acSec.getInt("sample_size", 5) : 5;
         long toleranceMs = acSec != null ? acSec.getLong("tolerance_ms", 30) : 30;
         double dropMult = acSec != null ? acSec.getDouble("drop_multiplier", 0.5) : 0.5;
+        double craftChance = getConfig().getDouble("craft_drop_chance", 0.05);
 
         this.antiCheatService = new AntiCheatService(sampleSize, toleranceMs);
 
@@ -261,7 +271,7 @@ public final class FishingPlugin extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(new ProfileListener(levelService, antiCheatService, rodService), this);
         Bukkit.getPluginManager().registerEvents(
             new FishingListener(lootService, awarder, levelService, qteService, questService, requiredPlayerLevel,
-                antiCheatService, dropMult), this);
+                antiCheatService, dropMult, craftChance, rodService), this);
         Bukkit.getPluginManager().registerEvents(new QteListener(qteService), this);
         Bukkit.getOnlinePlayers().forEach(p -> {
             levelService.loadProfile(p);
@@ -278,6 +288,7 @@ public final class FishingPlugin extends JavaPlugin {
         getCommand("fishing").setExecutor(new FishingCommand(mainMenu, adminMenu, requiredPlayerLevel));
         getCommand("fishsell").setExecutor(new QuickSellCommand(quickSellMenu));
         getCommand("fishingrod").setExecutor(new GiveRodCommand(rodService));
+        getCommand("adminrod").setExecutor(new AdminRodCommand(rodService));
 
         Bukkit.getPluginManager().registerEvents(mainMenu, this);
         Bukkit.getPluginManager().registerEvents(quickSellMenu, this);
@@ -328,28 +339,19 @@ public final class FishingPlugin extends JavaPlugin {
     }
 
     private void seedDefaultLoot() throws SQLException {
-        if (!lootRepo.findAll().isEmpty()) {
-            return;
-        }
         LootEntry[] defaults = new LootEntry[] {
-            fish("Chinook Salmon", Material.SALMON, 60, 1000, 7000, 7, 3),
-            fish("Coho Salmon", Material.SALMON, 60, 1000, 6000, 7, 3),
-            fish("Sockeye Salmon", Material.SALMON, 60, 800, 5000, 7, 3),
-            fish("Pink Salmon", Material.SALMON, 60, 700, 4500, 7, 3),
-            fish("Atlantic Salmon", Material.SALMON, 60, 1200, 8000, 7, 3),
-            fish("Clownfish", Material.TROPICAL_FISH, 30, 200, 500, 6, 2),
-            fish("Parrotfish", Material.TROPICAL_FISH, 30, 200, 600, 6, 2),
-            fish("Butterflyfish", Material.TROPICAL_FISH, 30, 150, 450, 6, 2),
-            fish("Blue Tang", Material.TROPICAL_FISH, 30, 150, 550, 6, 2),
-            fish("Lionfish", Material.TROPICAL_FISH, 30, 180, 520, 6, 2),
-            fish("Angelfish", Material.TROPICAL_FISH, 30, 170, 530, 6, 2),
-            fish("Pufferfish", Material.PUFFERFISH, 20, 600, 2000, 12, 6),
-            craft("alga_I", "&9[ I ] Algal", ChatColor.GRAY + "" + ChatColor.ITALIC + "Basic crafting material", Material.HORN_CORAL, 40),
-            craft("alga_II", "&5[ II ] Algal", ChatColor.GRAY + "" + ChatColor.ITALIC + "Basic crafting material", Material.HORN_CORAL, 40),
-            craft("alga_III", "&6[ III ] Algal", ChatColor.GRAY + "" + ChatColor.ITALIC + "Basic crafting material", Material.HORN_CORAL, 20),
-            craft("pearl_I", "&9[ I ] Shiny Pearl", ChatColor.GREEN + "" + ChatColor.ITALIC + "Rare crafting material", Material.TURTLE_EGG, 8),
-            craft("pearl_II", "&5[ II ] Shiny Pearl", ChatColor.GREEN + "" + ChatColor.ITALIC + "Rare crafting material", Material.TURTLE_EGG, 8),
-            craft("pearl_III", "&6[ III ] Shiny Pearl", ChatColor.GREEN + "" + ChatColor.ITALIC + "Rare crafting material", Material.TURTLE_EGG, 4)
+            fish("Chinook Salmon", Material.SALMON, 60, 1000, 7000, 1720, 1380),
+            fish("Coho Salmon", Material.SALMON, 60, 1000, 6000, 1720, 1380),
+            fish("Sockeye Salmon", Material.SALMON, 60, 800, 5000, 1720, 1380),
+            fish("Pink Salmon", Material.SALMON, 60, 700, 4500, 1720, 1380),
+            fish("Atlantic Salmon", Material.SALMON, 60, 1200, 8000, 1720, 1380),
+            fish("Clownfish", Material.TROPICAL_FISH, 30, 200, 500, 1720, 1380),
+            fish("Parrotfish", Material.TROPICAL_FISH, 30, 200, 600, 1720, 1380),
+            fish("Butterflyfish", Material.TROPICAL_FISH, 30, 150, 450, 1720, 1380),
+            fish("Blue Tang", Material.TROPICAL_FISH, 30, 150, 550, 1720, 1380),
+            fish("Lionfish", Material.TROPICAL_FISH, 30, 180, 520, 1720, 1380),
+            fish("Angelfish", Material.TROPICAL_FISH, 30, 170, 530, 1720, 1380),
+            fish("Pufferfish", Material.PUFFERFISH, 20, 600, 2000, 100000, 0)
         };
         for (LootEntry e : defaults) {
             lootRepo.upsert(e);
@@ -366,22 +368,4 @@ public final class FishingPlugin extends JavaPlugin {
             minW, maxW, b64);
     }
 
-    private LootEntry craft(String key, String display, String lore,
-                            Material mat, double baseWeight) {
-        ItemStack item = new ItemStack(mat);
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null) {
-            meta.setDisplayName(ChatColor.translateAlternateColorCodes('&', display));
-            meta.setLore(List.of(lore));
-            meta.addEnchant(Enchantment.DURABILITY, 10, true);
-            meta.addItemFlags(ItemFlag.HIDE_ENCHANTS, ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE);
-            meta.setUnbreakable(true);
-            item.setItemMeta(meta);
-        }
-        String b64 = ItemSerialization.toBase64(item);
-        return new LootEntry(key, Category.FISHERMAN_CHEST, baseWeight, 0, false,
-            0, 0, 1.0,
-            1, 1, 1, 1,
-            0, 0, b64);
-    }
 }

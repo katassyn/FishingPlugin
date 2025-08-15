@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Logger;
+import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.maks.fishingPlugin.data.Profile;
@@ -31,12 +32,13 @@ public class LevelService {
   private final double fishPerKg;
   private final double chestBaseXp;
   private final double runeBaseXp;
+  private final double mapBaseXp;
   private final double treasureBaseXp;
 
   public LevelService(ProfileRepo profileRepo, JavaPlugin plugin,
       double expBase, double expCoeff, double expPower,
       double fishBaseXp, double fishPerKg,
-      double chestBaseXp, double runeBaseXp, double treasureBaseXp) {
+      double chestBaseXp, double runeBaseXp, double mapBaseXp, double treasureBaseXp) {
     this.profileRepo = profileRepo;
     this.logger = plugin.getLogger();
     this.expBase = expBase;
@@ -46,6 +48,7 @@ public class LevelService {
     this.fishPerKg = fishPerKg;
     this.chestBaseXp = chestBaseXp;
     this.runeBaseXp = runeBaseXp;
+    this.mapBaseXp = mapBaseXp;
     this.treasureBaseXp = treasureBaseXp;
   }
 
@@ -149,6 +152,7 @@ public class LevelService {
       case FISH -> gain = Math.round(fishBaseXp + fishPerKg * weightKg);
       case FISHERMAN_CHEST -> gain = Math.round(chestBaseXp);
       case RUNE -> gain = Math.round(runeBaseXp);
+      case TREASURE_MAP -> gain = Math.round(mapBaseXp);
       case TREASURE -> gain = Math.round(treasureBaseXp);
       default -> gain = 0;
     }
@@ -167,6 +171,7 @@ public class LevelService {
     if (rodService != null) {
       rodService.updatePlayerRod(p, level, xp);
     }
+    p.playSound(p.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
     return level;
   }
 

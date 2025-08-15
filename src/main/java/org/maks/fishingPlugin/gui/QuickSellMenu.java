@@ -1,48 +1,29 @@
 package org.maks.fishingPlugin.gui;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import net.kyori.adventure.text.Component;
-import org.maks.fishingPlugin.model.SellSummary;
+import org.bukkit.ChatColor;
 import org.maks.fishingPlugin.service.QuickSellService;
 
 /**
- * Inventory based quick sell menu allowing selection of fish to sell.
+ * Simple chest-style menu where players place fish to sell.
  */
 public class QuickSellMenu implements Listener {
 
   private final QuickSellService quickSellService;
-  private final Map<java.util.UUID, Set<String>> selections = new HashMap<>();
 
   public QuickSellMenu(QuickSellService quickSellService) {
     this.quickSellService = quickSellService;
-  }
-
-  private ItemStack entryItem(SellSummary.Entry e, boolean selected) {
-    ItemStack item = new ItemStack(selected ? Material.LIME_DYE : Material.GRAY_DYE);
-    ItemMeta meta = item.getItemMeta();
-    if (meta != null) {
-      meta.displayName(Component.text(e.key() + " [" + e.quality() + "]"));
-      java.util.List<Component> lore = new java.util.ArrayList<>();
-      lore.add(Component.text("Amount: " + e.amount()));
-      lore.add(Component.text("Price: " + quickSellService.currencySymbol()
-          + String.format("%.2f", e.price())));
-      meta.lore(lore);
-      item.setItemMeta(meta);
-    }
-    return item;
   }
 
   private ItemStack button(Material mat, String name) {
@@ -55,20 +36,8 @@ public class QuickSellMenu implements Listener {
     return item;
   }
 
-  private Inventory createInventory(Player player) {
-    SellSummary summary = quickSellService.summarize(player);
-    Set<String> sel = selections.computeIfAbsent(player.getUniqueId(), k -> new HashSet<>());
-    Inventory inv = Bukkit.createInventory(new Holder(summary), 54, "Quick Sell");
-    int slot = 0;
-    for (SellSummary.Entry e : summary.entries()) {
-      String gk = QuickSellService.groupKey(e.key(), e.quality());
-      boolean selected = sel.contains(gk);
-      ItemStack item = entryItem(e, selected);
-      if (slot < 45) {
-        inv.setItem(slot, item);
-      }
-      slot++;
-    }
+  private Inventory createInventory() {
+    Inventory inv = Bukkit.createInventory(new Holder(), 54, "Quick Sell");
     ItemStack filler = new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
     ItemMeta fMeta = filler.getItemMeta();
     if (fMeta != null) {
@@ -84,52 +53,62 @@ public class QuickSellMenu implements Listener {
 
   /** Open the quick sell menu. */
   public void open(Player player) {
-    player.openInventory(createInventory(player));
+    player.openInventory(createInventory());
   }
 
   @EventHandler
   public void onClick(InventoryClickEvent event) {
-    if (!(event.getInventory().getHolder() instanceof Holder holder)) {
+    if (!(event.getInventory().getHolder() instanceof Holder)) {
       return;
     }
-    event.setCancelled(true);
-    Player player = (Player) event.getWhoClicked();
-    Set<String> sel = selections.computeIfAbsent(player.getUniqueId(), k -> new HashSet<>());
-
     int slot = event.getRawSlot();
     if (slot == 49) {
-      double amount = quickSellService.sellSelected(player, sel);
+      event.setCancelled(true);
+      Inventory inv = event.getInventory();
+      ItemStack[] items = new ItemStack[45];
+      for (int i = 0; i < 45; i++) {
+        items[i] = inv.getItem(i);
+      }
+      Player player = (Player) event.getWhoClicked();
+      double amount = quickSellService.sellItems(player, items);
       if (amount > 0) {
-        player.sendMessage("Sold fish for " + quickSellService.currencySymbol()
-            + String.format("%.2f", amount));
+        player.sendMessage(ChatColor.GREEN + "Sold fish for " + ChatColor.YELLOW
+            + quickSellService.currencySymbol() + String.format("%.2f", amount));
+        for (int i = 0; i < 45; i++) {
+          inv.setItem(i, null);
+        }
       } else {
         player.sendMessage("No fish sold");
       }
-      sel.clear();
-      open(player);
       return;
     }
-    if (slot >= 0 && slot < holder.summary.entries().size() && slot < 45) {
-      SellSummary.Entry e = holder.summary.entries().get(slot);
-      String gk = QuickSellService.groupKey(e.key(), e.quality());
-      if (sel.contains(gk)) {
-        sel.remove(gk);
-      } else {
-        sel.add(gk);
+    if (slot >= 45 && slot < 54) {
+      event.setCancelled(true);
+    }
+  }
+
+  @EventHandler
+  public void onClose(InventoryCloseEvent event) {
+    if (!(event.getInventory().getHolder() instanceof Holder)) {
+      return;
+    }
+    Inventory inv = event.getInventory();
+    Player player = (Player) event.getPlayer();
+    for (int i = 0; i < 45; i++) {
+      ItemStack item = inv.getItem(i);
+      if (item != null && item.getType() != Material.AIR) {
+        java.util.Map<Integer, ItemStack> leftover = player.getInventory().addItem(item);
+        for (ItemStack drop : leftover.values()) {
+          player.getWorld().dropItem(player.getLocation(), drop);
+        }
       }
-      open(player);
     }
   }
 
   private static class Holder implements InventoryHolder {
-    final SellSummary summary;
-    Holder(SellSummary summary) {
-      this.summary = summary;
-    }
     @Override
     public Inventory getInventory() {
       return null;
     }
   }
 }
-

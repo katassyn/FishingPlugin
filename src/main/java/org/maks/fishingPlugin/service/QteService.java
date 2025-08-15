@@ -9,7 +9,8 @@ import net.kyori.adventure.title.Title;
 import org.bukkit.entity.Player;
 
 /**
- * Simple QTE system requiring players to swipe their mouse left or right.
+ * Simple QTE system requiring players to swing the crosshair left or right
+ * before reeling in.
  */
 public class QteService {
 
@@ -19,7 +20,7 @@ public class QteService {
     Direction required;
     float startYaw;
     long expiry;
-    boolean success;
+    boolean failed;
 
     State(Direction required, float startYaw, long expiry) {
       this.required = required;
@@ -58,27 +59,33 @@ public class QteService {
     player.showTitle(Title.title(Component.text(bar), Component.text(msg)));
   }
 
-  /** Handle mouse look movement during the QTE window. */
-  public void handleLook(Player player, float toYaw) {
+  /** Mark current QTE as failed due to player movement. */
+  public void fail(Player player) {
     State st = states.get(player.getUniqueId());
-    if (st == null) return;
-    long now = System.currentTimeMillis();
-    if (now > st.expiry) {
-      states.remove(player.getUniqueId());
-      return;
-    }
-    float diff = toYaw - st.startYaw;
-    if (st.required == Direction.LEFT && diff <= -yawThreshold) {
-      st.success = true;
-    } else if (st.required == Direction.RIGHT && diff >= yawThreshold) {
-      st.success = true;
+    if (st != null) {
+      st.failed = true;
     }
   }
 
-  /** Consume the QTE result when reeling in. */
-  public boolean consume(Player player) {
+  /**
+   * Verify the swipe direction when the player reels in.
+   *
+   * @param player the player
+   * @param currentYaw yaw at the moment of reeling in
+   * @return true if the QTE is satisfied or absent
+   */
+  public boolean verify(Player player, float currentYaw) {
     State st = states.remove(player.getUniqueId());
     if (st == null) return true; // no QTE triggered
-    return st.success && System.currentTimeMillis() <= st.expiry;
+    if (st.failed || System.currentTimeMillis() > st.expiry) {
+      return false;
+    }
+    float diff = currentYaw - st.startYaw;
+    diff = (diff + 540) % 360 - 180; // normalize to [-180,180]
+    if (st.required == Direction.LEFT) {
+      return diff <= -yawThreshold;
+    } else {
+      return diff >= yawThreshold;
+    }
   }
 }

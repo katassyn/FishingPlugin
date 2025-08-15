@@ -5,9 +5,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.maks.fishingPlugin.service.QteService;
 
-/**
- * Captures mouse look changes during QTE windows.
- */
+/** Captures movement during QTE windows. */
 public class QteListener implements Listener {
 
   private final QteService qte;
@@ -18,14 +16,11 @@ public class QteListener implements Listener {
 
   @EventHandler
   public void onMove(PlayerMoveEvent event) {
-    if (event.getFrom().getYaw() == event.getTo().getYaw()) {
-      return; // no mouse movement
+    if (event.getFrom().getBlockX() != event.getTo().getBlockX()
+        || event.getFrom().getBlockY() != event.getTo().getBlockY()
+        || event.getFrom().getBlockZ() != event.getTo().getBlockZ()) {
+      qte.fail(event.getPlayer());
     }
-    if (event.getFrom().getX() != event.getTo().getX()
-        || event.getFrom().getY() != event.getTo().getY()
-        || event.getFrom().getZ() != event.getTo().getZ()) {
-      return; // ignore physical movement
-    }
-    qte.handleLook(event.getPlayer(), event.getTo().getYaw());
   }
+
 }

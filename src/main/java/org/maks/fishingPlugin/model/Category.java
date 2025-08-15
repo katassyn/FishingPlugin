@@ -7,5 +7,6 @@ public enum Category {
   FISH,
   FISHERMAN_CHEST,
   RUNE,
+  TREASURE_MAP,
   TREASURE
 }

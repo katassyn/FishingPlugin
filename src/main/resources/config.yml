@@ -18,6 +18,9 @@ anti_cheat:
   action: CANCEL # or REDUCE
   drop_multiplier: 0.5
 
+# Chance to receive crafting materials like algae or pearls in addition to the main catch.
+craft_drop_chance: 0.05
+
 economy:
   currency_symbol: "$"
   quicksell_tax: 0.0
@@ -33,6 +36,7 @@ exp_gain:
   fish_per_kg: 0.5
   chest_base: 22
   rune_base: 40
+  map_base: 40
   treasure_base: 80
 
 warps:
@@ -50,9 +54,10 @@ warps:
     z: -210.5
 
 category_weights:
-  FISH: 9600
+  FISH: 9520
   FISHERMAN_CHEST: 300
   RUNE: 80
+  TREASURE_MAP: 80
   TREASURE: 8
 
 category_scaling:
@@ -63,6 +68,9 @@ category_scaling:
     mode: EXP
     beta: 0.0025
   RUNE:
+    mode: EXP
+    beta: 0.0020
+  TREASURE_MAP:
     mode: EXP
     beta: 0.0020
   TREASURE:
