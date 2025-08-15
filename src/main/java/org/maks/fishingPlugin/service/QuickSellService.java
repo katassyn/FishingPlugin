@@ -43,9 +43,11 @@ public class QuickSellService {
     return key + "|" + quality.name();
   }
 
-  private double computePrice(LootEntry entry, double weight, int amount) {
-    return (entry.priceBase() + (weight / 1000.0) * entry.pricePerKg())
-        * entry.payoutMultiplier() * globalMultiplier * amount;
+  private double computePrice(LootEntry entry, double weight,
+      org.maks.fishingPlugin.model.Quality quality, int amount) {
+    double base = entry.priceBase() + (weight / 1000.0) * entry.pricePerKg();
+    double qualMult = quality.priceMultiplier();
+    return base * qualMult * entry.payoutMultiplier() * globalMultiplier * amount;
   }
 
   private double sell(Player player, java.util.function.Predicate<String> filter) {
@@ -62,7 +64,7 @@ public class QuickSellService {
       if (key == null || weight == null || qualStr == null) continue;
       LootEntry entry = lootService.getEntry(key);
       if (entry == null) continue;
-      if (entry.category() != Category.FISH && entry.category() != Category.FISH_PREMIUM) {
+      if (entry.category() != Category.FISH) {
         continue;
       }
       org.maks.fishingPlugin.model.Quality q;
@@ -73,7 +75,7 @@ public class QuickSellService {
       }
       String gk = groupKey(key, q);
       if (!filter.test(gk)) continue;
-      double price = computePrice(entry, weight, item.getAmount());
+      double price = computePrice(entry, weight, q, item.getAmount());
       total += price;
       player.getInventory().removeItem(item);
     }
@@ -111,7 +113,7 @@ public class QuickSellService {
       if (key == null || weight == null || qualStr == null) continue;
       LootEntry entry = lootService.getEntry(key);
       if (entry == null) continue;
-      if (entry.category() != Category.FISH && entry.category() != Category.FISH_PREMIUM) {
+      if (entry.category() != Category.FISH) {
         continue;
       }
       org.maks.fishingPlugin.model.Quality q;
@@ -120,7 +122,7 @@ public class QuickSellService {
       } catch (IllegalArgumentException ex) {
         continue;
       }
-      double price = computePrice(entry, weight, item.getAmount()) * (1.0 - tax);
+      double price = computePrice(entry, weight, q, item.getAmount()) * (1.0 - tax);
       String gk = groupKey(key, q);
       Mutable m = map.get(gk);
       if (m == null) {

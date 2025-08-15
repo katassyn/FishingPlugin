@@ -11,6 +11,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.maks.fishingPlugin.data.Profile;
 import org.maks.fishingPlugin.data.ProfileRepo;
 import org.maks.fishingPlugin.service.RodService;
+import org.maks.fishingPlugin.model.Category;
 
 /**
  * Handles rod experience calculations and persistence.
@@ -22,9 +23,30 @@ public class LevelService {
   private final Map<UUID, Profile> profiles = new HashMap<>();
   private RodService rodService;
 
-  public LevelService(ProfileRepo profileRepo, JavaPlugin plugin) {
+  private final double expBase;
+  private final double expCoeff;
+  private final double expPower;
+
+  private final double fishBaseXp;
+  private final double fishPerKg;
+  private final double chestBaseXp;
+  private final double runeBaseXp;
+  private final double treasureBaseXp;
+
+  public LevelService(ProfileRepo profileRepo, JavaPlugin plugin,
+      double expBase, double expCoeff, double expPower,
+      double fishBaseXp, double fishPerKg,
+      double chestBaseXp, double runeBaseXp, double treasureBaseXp) {
     this.profileRepo = profileRepo;
     this.logger = plugin.getLogger();
+    this.expBase = expBase;
+    this.expCoeff = expCoeff;
+    this.expPower = expPower;
+    this.fishBaseXp = fishBaseXp;
+    this.fishPerKg = fishPerKg;
+    this.chestBaseXp = chestBaseXp;
+    this.runeBaseXp = runeBaseXp;
+    this.treasureBaseXp = treasureBaseXp;
   }
 
   /**
@@ -110,13 +132,7 @@ public class LevelService {
    * @return experience needed to reach {@code level + 1}
    */
   public long neededExp(int level) {
-    if (level < 15) {
-      return Math.round(150 * Math.pow(1.12, level));
-    }
-    if (level < 30) {
-      return Math.round(150 * Math.pow(1.12, 15) * Math.pow(1.14, level - 15));
-    }
-    return Math.round(150 * Math.pow(1.12, 15) * Math.pow(1.14, 15) * Math.pow(1.16, level - 30));
+    return Math.round(expBase + expCoeff * Math.pow(level, expPower));
   }
 
   /**
@@ -127,8 +143,15 @@ public class LevelService {
    * @param perfect whether the QTE was perfect
    * @return new rod level after applying experience
    */
-  public int awardCatchExp(Player p, double weightKg, boolean perfect) {
-    long gain = Math.round(8 + 0.4 * weightKg + (perfect ? 3 : 0));
+  public int awardCatchExp(Player p, Category cat, double weightKg) {
+    long gain;
+    switch (cat) {
+      case FISH -> gain = Math.round(fishBaseXp + fishPerKg * weightKg);
+      case FISHERMAN_CHEST -> gain = Math.round(chestBaseXp);
+      case RUNE -> gain = Math.round(runeBaseXp);
+      case TREASURE -> gain = Math.round(treasureBaseXp);
+      default -> gain = 0;
+    }
     Profile prof = profile(p);
     long xp = prof.rodXp() + gain;
     int level = prof.rodLevel();

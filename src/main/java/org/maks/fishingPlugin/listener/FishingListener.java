@@ -45,7 +45,6 @@ public class FishingListener implements Listener {
     Player player = event.getPlayer();
     if (event.getState() == PlayerFishEvent.State.FISHING) {
       if (player.getLevel() < requiredLevel) {
-        player.sendMessage("You need level " + requiredLevel + " to fish.");
         event.setCancelled(true);
       }
       return;
@@ -59,12 +58,10 @@ public class FishingListener implements Listener {
     }
     event.setCancelled(true);
     if (!qteService.consume(player)) {
-      player.sendMessage("The fish got away!");
       return;
     }
     boolean penalized = antiCheat.consumeFlag(player.getUniqueId());
     if (penalized && ThreadLocalRandom.current().nextDouble() > dropMultiplier) {
-      player.sendMessage("Suspicious clicks - you caught nothing.");
       return;
     }
     int rodLevel = levelService.getLevel(player);
@@ -72,18 +69,13 @@ public class FishingListener implements Listener {
     try {
       loot = lootService.roll(rodLevel);
     } catch (IllegalStateException e) {
-      player.sendMessage("No loot configured.");
+
       return;
     }
     Awarder.AwardResult res = awarder.give(player, loot);
     if (res.item() != null) {
       double kg = res.weightG() / 1000.0;
-      player.sendMessage("You caught a fish weighing " + String.format("%.1f", kg) + "kg");
-      int before = rodLevel;
-      int after = levelService.awardCatchExp(player, kg, true);
-      if (after > before) {
-        player.sendMessage("Your fishing rod leveled up to " + after + "!");
-      }
+      levelService.awardCatchExp(player, loot.category(), kg);
       questService.onCatch(player);
     }
   }

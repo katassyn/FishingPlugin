@@ -5,9 +5,7 @@ package org.maks.fishingPlugin.model;
  */
 public enum Category {
   FISH,
-  FISH_PREMIUM,
-  RUNE,
-  TREASURE,
   FISHERMAN_CHEST,
-  MATERIAL
+  RUNE,
+  TREASURE
 }

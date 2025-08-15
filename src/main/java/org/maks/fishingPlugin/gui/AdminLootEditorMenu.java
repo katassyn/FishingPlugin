@@ -49,6 +49,8 @@ public class AdminLootEditorMenu implements Listener {
   private final Map<UUID, Editor> editors = new HashMap<>();
   /** Mirror item editor state per player. */
   private final Map<UUID, MirrorData> mirrorEditors = new HashMap<>();
+  /** New drop creation state per player. */
+  private final Map<UUID, AddContext> addEditors = new HashMap<>();
 
   public AdminLootEditorMenu(JavaPlugin plugin, LootService lootService, LootRepo lootRepo,
       ParamRepo paramRepo, QuickSellService quickSellService, AdminQuestEditorMenu questMenu,
@@ -65,6 +67,9 @@ public class AdminLootEditorMenu implements Listener {
 
   enum Type {
     MAIN,
+    ADD_ITEMS,
+    ADD_CATS,
+    ADD_WEIGHTS,
     WEIGHTS,
     CAT_WEIGHTS,
     SCALING,
@@ -88,13 +93,82 @@ public class AdminLootEditorMenu implements Listener {
 
   private Inventory mainInv() {
     Inventory inv = Bukkit.createInventory(new Holder(Type.MAIN), 27, "Admin Editor");
-    inv.setItem(10, button(Material.GREEN_WOOL, "Add From Hand"));
+    inv.setItem(10, button(Material.GREEN_WOOL, "Add Drops"));
     inv.setItem(12, button(Material.ANVIL, "Edit Entry Weights"));
     inv.setItem(14, button(Material.BOOK, "Edit Scaling"));
     inv.setItem(16, button(Material.PAPER, "Edit Quests"));
     inv.setItem(18, button(Material.GLASS, "Add Mirror Item"));
     inv.setItem(20, button(Material.SUNFLOWER, "Edit Economy"));
     inv.setItem(22, button(Material.CHEST, "Edit Category Weights"));
+    return inv;
+  }
+
+  private Inventory addItemsInv(AddContext ctx) {
+    Inventory inv = Bukkit.createInventory(new Holder(Type.ADD_ITEMS, ctx), 54, "Place Items");
+    inv.setItem(52, button(Material.ARROW, "Back"));
+    inv.setItem(53, button(Material.LIME_WOOL, "Next"));
+    return inv;
+  }
+
+  private Inventory addCatsInv(AddContext ctx) {
+    Map<Integer, Integer> idx = new HashMap<>();
+    Inventory inv = Bukkit.createInventory(new Holder(Type.ADD_CATS, null, new HashMap<>(), new HashMap<>(), idx, ctx), 54,
+        "Select Categories");
+    int slot = 0;
+    for (int i = 0; i < ctx.items.size() && slot < 52; i++) {
+      ItemStack item = ctx.items.get(i).clone();
+      Category cat;
+      if (ctx.categories.size() > i) {
+        cat = ctx.categories.get(i);
+      } else {
+        cat = Category.FISH;
+        ctx.categories.add(cat);
+      }
+      ItemMeta meta = item.getItemMeta();
+      if (meta != null) {
+        java.util.List<Component> lore = new java.util.ArrayList<>();
+        lore.add(Component.text("Category: " + cat.name()));
+        lore.add(Component.text("Click to cycle"));
+        meta.lore(lore);
+        item.setItemMeta(meta);
+      }
+      inv.setItem(slot, item);
+      idx.put(slot, i);
+      slot++;
+    }
+    inv.setItem(52, button(Material.ARROW, "Back"));
+    inv.setItem(53, button(Material.LIME_WOOL, "Next"));
+    return inv;
+  }
+
+  private Inventory addWeightsInv(AddContext ctx) {
+    Map<Integer, Integer> idx = new HashMap<>();
+    Inventory inv = Bukkit.createInventory(new Holder(Type.ADD_WEIGHTS, null, new HashMap<>(), new HashMap<>(), idx, ctx), 54,
+        "Set Weights");
+    int slot = 0;
+    for (int i = 0; i < ctx.items.size() && slot < 52; i++) {
+      ItemStack item = ctx.items.get(i).clone();
+      double w;
+      if (ctx.weights.size() > i) {
+        w = ctx.weights.get(i);
+      } else {
+        w = 1.0;
+        ctx.weights.add(w);
+      }
+      ItemMeta meta = item.getItemMeta();
+      if (meta != null) {
+        java.util.List<Component> lore = new java.util.ArrayList<>();
+        lore.add(Component.text("Weight: " + String.format("%.2f", w)));
+        lore.add(Component.text("L +1, R -1"));
+        meta.lore(lore);
+        item.setItemMeta(meta);
+      }
+      inv.setItem(slot, item);
+      idx.put(slot, i);
+      slot++;
+    }
+    inv.setItem(52, button(Material.ARROW, "Back"));
+    inv.setItem(53, button(Material.LIME_WOOL, "Save"));
     return inv;
   }
 
@@ -440,22 +514,34 @@ public class AdminLootEditorMenu implements Listener {
     player.openInventory(entryInv(entry));
   }
 
-  private void addFromHand(Player player) {
-    ItemStack item = player.getInventory().getItemInMainHand();
-    if (item == null || item.getType().isAir()) {
-      player.sendMessage("Hold an item in your hand.");
-      return;
+  private void openAddItems(Player player, AddContext ctx) {
+    player.openInventory(addItemsInv(ctx));
+  }
+
+  private void openAddCats(Player player, AddContext ctx) {
+    player.openInventory(addCatsInv(ctx));
+  }
+
+  private void openAddWeights(Player player, AddContext ctx) {
+    player.openInventory(addWeightsInv(ctx));
+  }
+
+  private void saveNewDrops(Player player, AddContext ctx) {
+    for (int i = 0; i < ctx.items.size(); i++) {
+      ItemStack item = ctx.items.get(i);
+      Category cat = ctx.categories.size() > i ? ctx.categories.get(i) : Category.FISH;
+      double w = ctx.weights.size() > i ? ctx.weights.get(i) : 1.0;
+      String key = cat.name().toLowerCase() + "_" + UUID.randomUUID();
+      LootEntry entry = new LootEntry(key, cat, w, 0, false, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0,
+          1.0, 0.0, 0.0, ItemSerialization.toBase64(item));
+      lootService.addEntry(entry);
+      try {
+        lootRepo.upsert(entry);
+      } catch (SQLException e) {
+        player.sendMessage("DB error: " + e.getMessage());
+      }
     }
-    String key = "hand_" + UUID.randomUUID();
-    LootEntry entry = new LootEntry(key, Category.FISH, 1.0, 0, false, 0.0,
-        0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 100.0, 200.0, ItemSerialization.toBase64(item));
-    lootService.addEntry(entry);
-    try {
-      lootRepo.upsert(entry);
-    } catch (SQLException e) {
-      player.sendMessage("DB error: " + e.getMessage());
-    }
-    player.sendMessage("Added loot entry " + key);
+    player.sendMessage("Added " + ctx.items.size() + " drops.");
   }
 
   private void saveMirror(Player player) {
@@ -565,8 +651,9 @@ public class AdminLootEditorMenu implements Listener {
       case MAIN -> {
         int slot = event.getRawSlot();
         if (slot == 10) {
-          addFromHand(player);
-          open(player);
+          AddContext ctx = new AddContext();
+          addEditors.put(player.getUniqueId(), ctx);
+          openAddItems(player, ctx);
         } else if (slot == 12) {
           openWeights(player);
         } else if (slot == 14) {
@@ -579,6 +666,74 @@ public class AdminLootEditorMenu implements Listener {
           openEconomy(player);
         } else if (slot == 22) {
           openCatWeights(player);
+        }
+      }
+      case ADD_ITEMS -> {
+        int raw = event.getRawSlot();
+        if (raw == 52) {
+          open(player);
+          return;
+        }
+        if (raw == 53) {
+          AddContext ctx = addEditors.get(player.getUniqueId());
+          if (ctx != null) {
+            ctx.items.clear();
+            Inventory top = event.getInventory();
+            for (int i = 0; i < 52; i++) {
+              ItemStack it = top.getItem(i);
+              if (it != null && !it.getType().isAir()) {
+                ctx.items.add(it.clone());
+              }
+            }
+            ctx.categories.clear();
+            ctx.weights.clear();
+            openAddCats(player, ctx);
+          }
+          return;
+        }
+        if (raw < 52 || raw >= event.getView().getTopInventory().getSize()) {
+          event.setCancelled(false);
+        }
+      }
+      case ADD_CATS -> {
+        int raw = event.getRawSlot();
+        AddContext ctx = holder.addCtx;
+        if (raw == 52) {
+          openAddItems(player, ctx);
+          return;
+        }
+        if (raw == 53) {
+          openAddWeights(player, ctx);
+          return;
+        }
+        Integer idx = holder.indexMap.get(raw);
+        if (idx != null) {
+          Category current = ctx.categories.get(idx);
+          Category[] vals = Category.values();
+          int next = (current.ordinal() + 1) % vals.length;
+          ctx.categories.set(idx, vals[next]);
+          openAddCats(player, ctx);
+        }
+      }
+      case ADD_WEIGHTS -> {
+        int raw = event.getRawSlot();
+        AddContext ctx = holder.addCtx;
+        if (raw == 52) {
+          openAddCats(player, ctx);
+          return;
+        }
+        if (raw == 53) {
+          saveNewDrops(player, ctx);
+          addEditors.remove(player.getUniqueId());
+          open(player);
+          return;
+        }
+        Integer idx = holder.indexMap.get(raw);
+        if (idx != null) {
+          double delta = event.getClick() == ClickType.RIGHT ? -1.0 : 1.0;
+          double val = Math.max(0.0, ctx.weights.get(idx) + delta);
+          ctx.weights.set(idx, val);
+          openAddWeights(player, ctx);
         }
       }
       case WEIGHTS -> {
@@ -836,6 +991,12 @@ public class AdminLootEditorMenu implements Listener {
     }
   }
 
+  private static class AddContext {
+    final java.util.List<ItemStack> items = new java.util.ArrayList<>();
+    final java.util.List<Category> categories = new java.util.ArrayList<>();
+    final java.util.List<Double> weights = new java.util.ArrayList<>();
+  }
+
   private static class MirrorData {
     Category category = Category.FISH;
     boolean broadcast = false;
@@ -846,25 +1007,36 @@ public class AdminLootEditorMenu implements Listener {
     final Type type;
     final Map<Integer, LootEntry> weightMap;
     final Map<Integer, Category> scaleMap;
+    final Map<Integer, Integer> indexMap;
     final LootEntry entry;
+    final AddContext addCtx;
     Holder(Type type) {
-      this(type, null, new HashMap<>(), new HashMap<>());
+      this(type, null, new HashMap<>(), new HashMap<>(), new HashMap<>(), null);
     }
     Holder(Type type, Map<Integer, LootEntry> weightMap) {
-      this(type, null, weightMap, new HashMap<>());
+      this(type, null, weightMap, new HashMap<>(), new HashMap<>(), null);
     }
     Holder(Type type, Map<Integer, LootEntry> weightMap, Map<Integer, Category> scaleMap) {
-      this(type, null, weightMap, scaleMap);
+      this(type, null, weightMap, scaleMap, new HashMap<>(), null);
+    }
+    Holder(Type type, AddContext ctx) {
+      this(type, null, new HashMap<>(), new HashMap<>(), new HashMap<>(), ctx);
     }
     Holder(Type type, LootEntry entry) {
-      this(type, entry, new HashMap<>(), new HashMap<>());
+      this(type, entry, new HashMap<>(), new HashMap<>(), new HashMap<>(), null);
     }
     Holder(Type type, LootEntry entry, Map<Integer, LootEntry> weightMap,
         Map<Integer, Category> scaleMap) {
+      this(type, entry, weightMap, scaleMap, new HashMap<>(), null);
+    }
+    Holder(Type type, LootEntry entry, Map<Integer, LootEntry> weightMap,
+        Map<Integer, Category> scaleMap, Map<Integer, Integer> indexMap, AddContext ctx) {
       this.type = type;
       this.entry = entry;
       this.weightMap = weightMap;
       this.scaleMap = scaleMap;
+      this.indexMap = indexMap;
+      this.addCtx = ctx;
     }
     @Override
     public Inventory getInventory() {

@@ -68,20 +68,26 @@ public class LootService {
 
     Map<Category, List<LootEntry>> byCat = new EnumMap<>(Category.class);
     for (LootEntry e : entries) {
-      double w = effectiveWeight(e, rodLevel);
+      if (rodLevel < e.minRodLevel()) {
+        continue;
+      }
+      byCat.computeIfAbsent(e.category(), k -> new ArrayList<>()).add(e);
+    }
+    Map<Category, Double> weights = new EnumMap<>(Category.class);
+    for (Map.Entry<Category, List<LootEntry>> en : byCat.entrySet()) {
+      double w = effectiveCategoryWeight(en.getKey(), rodLevel);
       if (w > 0) {
-        byCat.computeIfAbsent(e.category(), k -> new ArrayList<>()).add(e);
+        weights.put(en.getKey(), w);
       }
     }
-    if (byCat.isEmpty()) {
+    if (weights.isEmpty()) {
       throw new IllegalStateException("No loot entries available for rod level");
     }
-    List<Category> cats = new ArrayList<>(byCat.keySet());
     WeightedPicker<Category> catPicker =
-        new WeightedPicker<>(cats, c -> baseCategoryWeights.getOrDefault(c, 1.0));
+        new WeightedPicker<>(new ArrayList<>(weights.keySet()), c -> weights.get(c));
     Category picked = catPicker.pick(ThreadLocalRandom.current());
     WeightedPicker<LootEntry> picker =
-        new WeightedPicker<>(byCat.get(picked), e -> effectiveWeight(e, rodLevel));
+        new WeightedPicker<>(byCat.get(picked), LootEntry::baseWeight);
     return picker.pick(ThreadLocalRandom.current());
   }
 
@@ -93,13 +99,20 @@ public class LootService {
    * Calculates the effective weight for the given loot entry at the specified
    * rod level after applying category scaling and level requirements.
    */
-  public double effectiveWeight(LootEntry e, int rodLevel) {
-    if (rodLevel < e.minRodLevel()) {
+  private double effectiveCategoryWeight(Category cat, int rodLevel) {
+    if (cat == Category.RUNE && rodLevel < 25) {
       return 0.0;
     }
-    ScaleConf conf = scaling.get(e.category());
-    double base = e.baseWeight();
+    if (cat == Category.TREASURE && rodLevel < 50) {
+      return 0.0;
+    }
+    ScaleConf conf = scaling.get(cat);
+    double base = baseCategoryWeights.getOrDefault(cat, 0.0);
     return conf == null ? base : base * conf.mult(rodLevel);
+  }
+
+  public double effectiveWeight(LootEntry e, int rodLevel) {
+    return rodLevel < e.minRodLevel() ? 0.0 : e.baseWeight();
   }
 
   public double getBaseCategoryWeight(Category cat) {
