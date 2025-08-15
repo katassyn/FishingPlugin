@@ -20,6 +20,7 @@ import org.bukkit.inventory.ItemFlag;
 import org.bukkit.ChatColor;
 import org.maks.fishingPlugin.service.RodService;
 
+
 /**
  * Listener replacing vanilla fishing drops with custom loot.
  */
@@ -39,6 +40,7 @@ public class FishingListener implements Listener {
   public FishingListener(LootService lootService, Awarder awarder, LevelService levelService,
       QteService qteService, QuestChainService questService, int requiredLevel,
       AntiCheatService antiCheat, double dropMultiplier, double craftChance, RodService rodService) {
+
     this.lootService = lootService;
     this.awarder = awarder;
     this.levelService = levelService;
@@ -49,6 +51,7 @@ public class FishingListener implements Listener {
     this.dropMultiplier = dropMultiplier;
     this.craftChance = craftChance;
     this.rodService = rodService;
+
   }
 
   @EventHandler
@@ -122,6 +125,54 @@ public class FishingListener implements Listener {
         ? ChatColor.GRAY + "" + ChatColor.ITALIC + "Basic crafting material"
         : ChatColor.GREEN + "" + ChatColor.ITALIC + "Rare crafting material";
     ItemStack item = new ItemStack(mat, amount);
+    ItemMeta meta = item.getItemMeta();
+    if (meta != null) {
+      meta.setDisplayName(display);
+      meta.setLore(java.util.List.of(lore));
+      meta.addEnchant(Enchantment.DURABILITY, 10, true);
+      meta.addItemFlags(ItemFlag.HIDE_ENCHANTS, ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE);
+      meta.setUnbreakable(true);
+      item.setItemMeta(meta);
+
+    }
+    return item;
+  }
+
+  private String roman(int tier) {
+    return switch (tier) {
+      case 1 -> "I";
+      case 2 -> "II";
+      default -> "III";
+    };
+  }
+
+  private void maybeGiveCraft(Player player) {
+    if (craftChance <= 0.0) {
+      return;
+    }
+    if (ThreadLocalRandom.current().nextDouble() >= craftChance) {
+      return;
+    }
+    boolean algae = ThreadLocalRandom.current().nextBoolean();
+    double tierRoll = ThreadLocalRandom.current().nextDouble();
+    int tier = tierRoll < 0.4 ? 1 : tierRoll < 0.8 ? 2 : 3;
+    ItemStack item = buildCraftItem(algae, tier);
+    player.getInventory().addItem(item);
+  }
+
+  private ItemStack buildCraftItem(boolean algae, int tier) {
+    Material mat = algae ? Material.HORN_CORAL : Material.TURTLE_EGG;
+    String name = (algae ? "Alga" : "Shiny Pearl");
+    ChatColor color = switch (tier) {
+      case 1 -> ChatColor.BLUE;
+      case 2 -> ChatColor.DARK_PURPLE;
+      default -> ChatColor.GOLD;
+    };
+    String display = color + "[ " + roman(tier) + " ] " + name;
+    String lore = algae
+        ? ChatColor.GRAY + "" + ChatColor.ITALIC + "Basic crafting material"
+        : ChatColor.GREEN + "" + ChatColor.ITALIC + "Rare crafting material";
+    ItemStack item = new ItemStack(mat);
     ItemMeta meta = item.getItemMeta();
     if (meta != null) {
       meta.setDisplayName(display);

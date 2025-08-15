@@ -30,6 +30,7 @@ public class QteListener implements Listener {
     Action act = event.getAction();
     if (act == Action.LEFT_CLICK_AIR || act == Action.LEFT_CLICK_BLOCK) {
       qte.handleClick(event.getPlayer(), event.getPlayer().getLocation().getYaw());
+
     }
   }
 }
