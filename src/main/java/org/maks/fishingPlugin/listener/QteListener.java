@@ -7,7 +7,7 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.maks.fishingPlugin.service.QteService;
 
-/** Captures clicks and movement during QTE windows. */
+
 public class QteListener implements Listener {
 
   private final QteService qte;
@@ -23,14 +23,7 @@ public class QteListener implements Listener {
         || event.getFrom().getBlockZ() != event.getTo().getBlockZ()) {
       qte.fail(event.getPlayer());
     }
+
   }
 
-  @EventHandler
-  public void onInteract(PlayerInteractEvent event) {
-    Action act = event.getAction();
-    if (act == Action.LEFT_CLICK_AIR || act == Action.LEFT_CLICK_BLOCK) {
-      qte.handleClick(event.getPlayer(), event.getPlayer().getLocation().getYaw());
-
-    }
-  }
 }
