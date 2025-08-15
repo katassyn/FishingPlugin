@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Optional;
 import java.util.UUID;
 import javax.sql.DataSource;
@@ -16,6 +17,18 @@ public class QuestProgressRepo {
 
   public QuestProgressRepo(DataSource dataSource) {
     this.dataSource = dataSource;
+  }
+
+  /** Create backing table if it doesn't exist. */
+  public void init() throws SQLException {
+    String sql = "CREATE TABLE IF NOT EXISTS fishing_quests_chain_progress (" +
+        "player_uuid VARCHAR(36) PRIMARY KEY, " +
+        "stage INT NOT NULL, " +
+        "count INT NOT NULL" +
+        ")";
+    try (Connection con = dataSource.getConnection(); Statement st = con.createStatement()) {
+      st.executeUpdate(sql);
+    }
   }
 
   public Optional<QuestProgress> find(UUID uuid) throws SQLException {

@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map;
 import javax.sql.DataSource;
@@ -17,8 +18,19 @@ public class ParamRepo {
     this.dataSource = dataSource;
   }
 
+  /** Create backing table if it doesn't exist. */
+  public void init() throws SQLException {
+    String sql = "CREATE TABLE IF NOT EXISTS fishing_param (" +
+        "`key` VARCHAR(64) PRIMARY KEY, " +
+        "value TEXT NOT NULL" +
+        ")";
+    try (Connection con = dataSource.getConnection(); Statement st = con.createStatement()) {
+      st.executeUpdate(sql);
+    }
+  }
+
   public Map<String, String> findAll() throws SQLException {
-    String sql = "SELECT key, value FROM fishing_param";
+    String sql = "SELECT `key`, value FROM fishing_param";
     Map<String, String> map = new HashMap<>();
     try (Connection con = dataSource.getConnection();
          PreparedStatement ps = con.prepareStatement(sql);
@@ -32,7 +44,7 @@ public class ParamRepo {
 
   /** Insert or update a parameter. */
   public void set(String key, String value) throws SQLException {
-    String sql = "INSERT INTO fishing_param(key, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value=VALUES(value)";
+    String sql = "INSERT INTO fishing_param(`key`, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value=VALUES(value)";
     try (Connection con = dataSource.getConnection();
          PreparedStatement ps = con.prepareStatement(sql)) {
       ps.setString(1, key);
