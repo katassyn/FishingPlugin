@@ -5,6 +5,7 @@ import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Consumer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -12,10 +13,12 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.plugin.java.JavaPlugin;
 import net.kyori.adventure.text.Component;
 import org.maks.fishingPlugin.data.LootRepo;
 import org.maks.fishingPlugin.data.ParamRepo;
@@ -24,25 +27,33 @@ import org.maks.fishingPlugin.model.LootEntry;
 import org.maks.fishingPlugin.model.ScaleConf;
 import org.maks.fishingPlugin.model.ScaleMode;
 import org.maks.fishingPlugin.service.LootService;
+import org.maks.fishingPlugin.service.QuickSellService;
 import org.maks.fishingPlugin.util.ItemSerialization;
 
 /** Inventory based admin editor for loot and scaling. */
 public class AdminLootEditorMenu implements Listener {
 
+  private final JavaPlugin plugin;
   private final LootService lootService;
   private final LootRepo lootRepo;
   private final ParamRepo paramRepo;
+  private final QuickSellService quickSellService;
   private final AdminQuestEditorMenu questMenu;
 
-  public AdminLootEditorMenu(LootService lootService, LootRepo lootRepo, ParamRepo paramRepo,
-      AdminQuestEditorMenu questMenu) {
+  /** Pending chat editors mapped by player for economy parameters. */
+  private final Map<UUID, Consumer<String>> editors = new HashMap<>();
+
+  public AdminLootEditorMenu(JavaPlugin plugin, LootService lootService, LootRepo lootRepo,
+      ParamRepo paramRepo, QuickSellService quickSellService, AdminQuestEditorMenu questMenu) {
+    this.plugin = plugin;
     this.lootService = lootService;
     this.lootRepo = lootRepo;
     this.paramRepo = paramRepo;
+    this.quickSellService = quickSellService;
     this.questMenu = questMenu;
   }
 
-  enum Type { MAIN, WEIGHTS, SCALING }
+  enum Type { MAIN, WEIGHTS, SCALING, ECON }
 
   private ItemStack button(Material mat, String name) {
     ItemStack item = new ItemStack(mat);
@@ -60,6 +71,7 @@ public class AdminLootEditorMenu implements Listener {
     inv.setItem(12, button(Material.ANVIL, "Edit Weights"));
     inv.setItem(14, button(Material.BOOK, "Edit Scaling"));
     inv.setItem(16, button(Material.PAPER, "Edit Quests"));
+    inv.setItem(20, button(Material.SUNFLOWER, "Edit Economy"));
     return inv;
   }
 
@@ -89,6 +101,48 @@ public class AdminLootEditorMenu implements Listener {
       if (slot >= 53) break;
     }
     inv.setItem(53, button(Material.BARRIER, "Back"));
+    return inv;
+  }
+
+  private Inventory economyInv() {
+    Inventory inv = Bukkit.createInventory(new Holder(Type.ECON), 27, "Economy");
+    ItemStack mult = new ItemStack(Material.PAPER);
+    ItemMeta mMeta = mult.getItemMeta();
+    if (mMeta != null) {
+      mMeta.displayName(Component.text("Global Multiplier"));
+      java.util.List<Component> lore = new java.util.ArrayList<>();
+      lore.add(Component.text(String.format("%.2f", quickSellService.globalMultiplier())));
+      lore.add(Component.text("L +0.1, R -0.1"));
+      mMeta.lore(lore);
+      mult.setItemMeta(mMeta);
+    }
+    inv.setItem(10, mult);
+
+    ItemStack tax = new ItemStack(Material.PAPER);
+    ItemMeta tMeta = tax.getItemMeta();
+    if (tMeta != null) {
+      tMeta.displayName(Component.text("QuickSell Tax"));
+      java.util.List<Component> lore = new java.util.ArrayList<>();
+      lore.add(Component.text(String.format("%.2f", quickSellService.tax())));
+      lore.add(Component.text("L +0.01, R -0.01"));
+      tMeta.lore(lore);
+      tax.setItemMeta(tMeta);
+    }
+    inv.setItem(12, tax);
+
+    ItemStack symbol = new ItemStack(Material.NAME_TAG);
+    ItemMeta sMeta = symbol.getItemMeta();
+    if (sMeta != null) {
+      sMeta.displayName(Component.text("Currency Symbol"));
+      java.util.List<Component> lore = new java.util.ArrayList<>();
+      lore.add(Component.text(quickSellService.currencySymbol()));
+      lore.add(Component.text("Click to edit"));
+      sMeta.lore(lore);
+      symbol.setItemMeta(sMeta);
+    }
+    inv.setItem(14, symbol);
+
+    inv.setItem(26, button(Material.BARRIER, "Back"));
     return inv;
   }
 
@@ -132,6 +186,10 @@ public class AdminLootEditorMenu implements Listener {
 
   private void openScaling(Player player) {
     player.openInventory(scalingInv());
+  }
+
+  private void openEconomy(Player player) {
+    player.openInventory(economyInv());
   }
 
   private void addFromHand(Player player) {
@@ -192,6 +250,26 @@ public class AdminLootEditorMenu implements Listener {
     }
   }
 
+  private void adjustMultiplier(Player player, double delta) {
+    double newVal = Math.max(0.0, quickSellService.globalMultiplier() + delta);
+    quickSellService.setGlobalMultiplier(newVal);
+    try {
+      paramRepo.set("global_multiplier", String.valueOf(newVal));
+    } catch (SQLException e) {
+      player.sendMessage("DB error: " + e.getMessage());
+    }
+  }
+
+  private void adjustTax(Player player, double delta) {
+    double newVal = Math.max(0.0, Math.min(1.0, quickSellService.tax() + delta));
+    quickSellService.setTax(newVal);
+    try {
+      paramRepo.set("quicksell_tax", String.valueOf(newVal));
+    } catch (SQLException e) {
+      player.sendMessage("DB error: " + e.getMessage());
+    }
+  }
+
   @EventHandler
   public void onClick(InventoryClickEvent event) {
     if (!(event.getInventory().getHolder() instanceof Holder holder)) {
@@ -211,6 +289,8 @@ public class AdminLootEditorMenu implements Listener {
           openScaling(player);
         } else if (slot == 16) {
           questMenu.open(player);
+        } else if (slot == 20) {
+          openEconomy(player);
         }
       }
       case WEIGHTS -> {
@@ -251,7 +331,49 @@ public class AdminLootEditorMenu implements Listener {
           openScaling(player);
         }
       }
+      case ECON -> {
+        int slot = event.getRawSlot();
+        if (slot == 26) {
+          open(player);
+          return;
+        }
+        if (slot == 10) {
+          double delta = event.getClick() == ClickType.RIGHT ? -0.1 : 0.1;
+          adjustMultiplier(player, delta);
+          openEconomy(player);
+        } else if (slot == 12) {
+          double delta = event.getClick() == ClickType.RIGHT ? -0.01 : 0.01;
+          adjustTax(player, delta);
+          openEconomy(player);
+        } else if (slot == 14) {
+          editors.put(player.getUniqueId(), msg -> {
+            quickSellService.setCurrencySymbol(msg);
+            try {
+              paramRepo.set("currency_symbol", msg);
+            } catch (SQLException e) {
+              player.sendMessage("DB error: " + e.getMessage());
+            }
+          });
+          player.closeInventory();
+          player.sendMessage("Enter currency symbol in chat");
+        }
+      }
     }
+  }
+
+  @EventHandler
+  public void onChat(AsyncPlayerChatEvent event) {
+    Consumer<String> consumer = editors.remove(event.getPlayer().getUniqueId());
+    if (consumer == null) {
+      return;
+    }
+    event.setCancelled(true);
+    String msg = event.getMessage();
+    Bukkit.getScheduler().runTask(plugin, () -> {
+      consumer.accept(msg);
+      event.getPlayer().sendMessage("Updated.");
+      openEconomy(event.getPlayer());
+    });
   }
 
   private static class Holder implements InventoryHolder {

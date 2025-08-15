@@ -211,7 +211,8 @@ public final class FishingPlugin extends JavaPlugin {
         PriceListMenu priceListMenu = new PriceListMenu(lootService, quickSellService);
         StatsMenu statsMenu = new StatsMenu(levelService, lootService);
         AdminQuestEditorMenu adminQuestMenu = new AdminQuestEditorMenu(this, questService, questRepo);
-        AdminLootEditorMenu adminMenu = new AdminLootEditorMenu(lootService, lootRepo, paramRepo, adminQuestMenu);
+        AdminLootEditorMenu adminMenu = new AdminLootEditorMenu(this, lootService, lootRepo, paramRepo,
+            quickSellService, adminQuestMenu);
         MainMenu mainMenu = new MainMenu(quickSellMenu, shopMenu, questMenu, priceListMenu, statsMenu,
             teleportService, requiredPlayerLevel);
         getCommand("fishing").setExecutor(new FishingCommand(mainMenu, adminMenu, requiredPlayerLevel));
