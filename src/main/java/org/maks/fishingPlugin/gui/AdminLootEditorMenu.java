@@ -45,8 +45,8 @@ public class AdminLootEditorMenu implements Listener {
   private final MirrorItemRepo mirrorItemRepo;
   private final MirrorItemService mirrorItemService;
 
-  /** Pending chat editors mapped by player for economy parameters. */
-  private final Map<UUID, Consumer<String>> editors = new HashMap<>();
+  /** Pending chat editors mapped by player. */
+  private final Map<UUID, Editor> editors = new HashMap<>();
   /** Mirror item editor state per player. */
   private final Map<UUID, MirrorData> mirrorEditors = new HashMap<>();
 
@@ -63,7 +63,16 @@ public class AdminLootEditorMenu implements Listener {
     this.mirrorItemService = mirrorItemService;
   }
 
-  enum Type { MAIN, WEIGHTS, CAT_WEIGHTS, SCALING, ECON, MIRROR_ADD, MIRROR_SELECT }
+  enum Type {
+    MAIN,
+    WEIGHTS,
+    CAT_WEIGHTS,
+    SCALING,
+    ECON,
+    MIRROR_ADD,
+    MIRROR_SELECT,
+    ENTRY
+  }
 
   private static final int[] PREVIEW_LEVELS = {0, 50, 100};
 
@@ -106,6 +115,7 @@ public class AdminLootEditorMenu implements Listener {
         java.util.List<Component> lore = new java.util.ArrayList<>();
         lore.add(Component.text("Weight: " + String.format("%.2f", e.baseWeight())));
         lore.add(Component.text("Left +1, Right -1"));
+        lore.add(Component.text("Shift to edit"));
         meta.lore(lore);
         item.setItemMeta(meta);
       }
@@ -140,6 +150,103 @@ public class AdminLootEditorMenu implements Listener {
       slot++;
     }
     inv.setItem(53, button(Material.BARRIER, "Back"));
+    return inv;
+  }
+
+  private Inventory entryInv(LootEntry e) {
+    Inventory inv = Bukkit.createInventory(new Holder(Type.ENTRY, e), 27, "Edit " + e.key());
+
+    ItemStack cat = new ItemStack(Material.PAPER);
+    ItemMeta cMeta = cat.getItemMeta();
+    if (cMeta != null) {
+      cMeta.displayName(Component.text("Category: " + e.category().name()));
+      cMeta.lore(java.util.List.of(Component.text("Click to cycle")));
+      cat.setItemMeta(cMeta);
+    }
+    inv.setItem(10, cat);
+
+    ItemStack rod = new ItemStack(Material.FISHING_ROD);
+    ItemMeta rMeta = rod.getItemMeta();
+    if (rMeta != null) {
+      rMeta.displayName(Component.text("Min Rod Level"));
+      java.util.List<Component> lore = new java.util.ArrayList<>();
+      lore.add(Component.text(String.valueOf(e.minRodLevel())));
+      lore.add(Component.text("L +1, R -1"));
+      rMeta.lore(lore);
+      rod.setItemMeta(rMeta);
+    }
+    inv.setItem(11, rod);
+
+    ItemStack bc = new ItemStack(e.broadcast() ? Material.LIME_DYE : Material.GRAY_DYE);
+    ItemMeta bMeta = bc.getItemMeta();
+    if (bMeta != null) {
+      bMeta.displayName(Component.text("Broadcast: " + (e.broadcast() ? "Yes" : "No")));
+      bMeta.lore(java.util.List.of(Component.text("Click to toggle")));
+      bc.setItemMeta(bMeta);
+    }
+    inv.setItem(12, bc);
+
+    ItemStack priceBase = new ItemStack(Material.GOLD_INGOT);
+    ItemMeta pbMeta = priceBase.getItemMeta();
+    if (pbMeta != null) {
+      pbMeta.displayName(Component.text("Price Base"));
+      java.util.List<Component> lore = new java.util.ArrayList<>();
+      lore.add(Component.text(String.format("%.2f", e.priceBase())));
+      lore.add(Component.text("Click to edit"));
+      pbMeta.lore(lore);
+      priceBase.setItemMeta(pbMeta);
+    }
+    inv.setItem(13, priceBase);
+
+    ItemStack priceKg = new ItemStack(Material.GOLD_NUGGET);
+    ItemMeta pkMeta = priceKg.getItemMeta();
+    if (pkMeta != null) {
+      pkMeta.displayName(Component.text("Price Per Kg"));
+      java.util.List<Component> lore = new java.util.ArrayList<>();
+      lore.add(Component.text(String.format("%.2f", e.pricePerKg())));
+      lore.add(Component.text("Click to edit"));
+      pkMeta.lore(lore);
+      priceKg.setItemMeta(pkMeta);
+    }
+    inv.setItem(14, priceKg);
+
+    ItemStack payout = new ItemStack(Material.EMERALD);
+    ItemMeta payMeta = payout.getItemMeta();
+    if (payMeta != null) {
+      payMeta.displayName(Component.text("Payout Multiplier"));
+      java.util.List<Component> lore = new java.util.ArrayList<>();
+      lore.add(Component.text(String.format("%.2f", e.payoutMultiplier())));
+      lore.add(Component.text("Click to edit"));
+      payMeta.lore(lore);
+      payout.setItemMeta(payMeta);
+    }
+    inv.setItem(15, payout);
+
+    ItemStack minW = new ItemStack(Material.FEATHER);
+    ItemMeta minMeta = minW.getItemMeta();
+    if (minMeta != null) {
+      minMeta.displayName(Component.text("Min Weight g"));
+      java.util.List<Component> lore = new java.util.ArrayList<>();
+      lore.add(Component.text(String.format("%.2f", e.minWeightG())));
+      lore.add(Component.text("Click to edit"));
+      minMeta.lore(lore);
+      minW.setItemMeta(minMeta);
+    }
+    inv.setItem(16, minW);
+
+    ItemStack maxW = new ItemStack(Material.PRISMARINE_CRYSTALS);
+    ItemMeta maxMeta = maxW.getItemMeta();
+    if (maxMeta != null) {
+      maxMeta.displayName(Component.text("Max Weight g"));
+      java.util.List<Component> lore = new java.util.ArrayList<>();
+      lore.add(Component.text(String.format("%.2f", e.maxWeightG())));
+      lore.add(Component.text("Click to edit"));
+      maxMeta.lore(lore);
+      maxW.setItemMeta(maxMeta);
+    }
+    inv.setItem(17, maxW);
+
+    inv.setItem(26, button(Material.BARRIER, "Back"));
     return inv;
   }
 
@@ -328,6 +435,10 @@ public class AdminLootEditorMenu implements Listener {
     player.openInventory(mirrorSelectInv());
   }
 
+  private void openEntry(Player player, LootEntry entry) {
+    player.openInventory(entryInv(entry));
+  }
+
   private void addFromHand(Player player) {
     ItemStack item = player.getInventory().getItemInMainHand();
     if (item == null || item.getType().isAir()) {
@@ -373,9 +484,13 @@ public class AdminLootEditorMenu implements Listener {
     LootEntry updated = new LootEntry(e.key(), e.category(), newWeight, e.minRodLevel(), e.broadcast(),
         e.priceBase(), e.pricePerKg(), e.payoutMultiplier(), e.qualitySWeight(), e.qualityAWeight(),
         e.qualityBWeight(), e.qualityCWeight(), e.minWeightG(), e.maxWeightG(), e.itemBase64());
-    lootService.updateEntry(updated);
+    saveEntry(player, updated);
+  }
+
+  private void saveEntry(Player player, LootEntry entry) {
+    lootService.updateEntry(entry);
     try {
-      lootRepo.upsert(updated);
+      lootRepo.upsert(entry);
     } catch (SQLException ex) {
       player.sendMessage("DB error: " + ex.getMessage());
     }
@@ -472,9 +587,14 @@ public class AdminLootEditorMenu implements Listener {
         }
         LootEntry e = holder.weightMap.get(event.getRawSlot());
         if (e != null) {
-          double delta = event.getClick() == ClickType.RIGHT ? -1.0 : 1.0;
-          adjustWeight(player, e, delta);
-          openWeights(player);
+          ClickType ct = event.getClick();
+          if (ct == ClickType.SHIFT_LEFT || ct == ClickType.SHIFT_RIGHT) {
+            openEntry(player, e);
+          } else {
+            double delta = ct == ClickType.RIGHT ? -1.0 : 1.0;
+            adjustWeight(player, e, delta);
+            openWeights(player);
+          }
         }
       }
       case CAT_WEIGHTS -> {
@@ -530,14 +650,14 @@ public class AdminLootEditorMenu implements Listener {
           adjustTax(player, delta);
           openEconomy(player);
         } else if (slot == 14) {
-          editors.put(player.getUniqueId(), msg -> {
+          editors.put(player.getUniqueId(), new Editor(msg -> {
             quickSellService.setCurrencySymbol(msg);
             try {
               paramRepo.set("currency_symbol", msg);
             } catch (SQLException e) {
               player.sendMessage("DB error: " + e.getMessage());
             }
-          });
+          }, p -> openEconomy(p)));
           player.closeInventory();
           player.sendMessage("Enter currency symbol in chat");
         }
@@ -575,22 +695,144 @@ public class AdminLootEditorMenu implements Listener {
           openMirrorAdd(player);
         }
       }
+      case ENTRY -> {
+        int slot = event.getRawSlot();
+        LootEntry e = holder.entry;
+        if (slot == 26) {
+          openWeights(player);
+          return;
+        }
+        if (e == null) {
+          openWeights(player);
+          return;
+        }
+        if (slot == 10) {
+          Category[] cats = Category.values();
+          Category newCat = cats[(e.category().ordinal() + 1) % cats.length];
+          LootEntry updated = new LootEntry(e.key(), newCat, e.baseWeight(), e.minRodLevel(),
+              e.broadcast(), e.priceBase(), e.pricePerKg(), e.payoutMultiplier(), e.qualitySWeight(),
+              e.qualityAWeight(), e.qualityBWeight(), e.qualityCWeight(), e.minWeightG(),
+              e.maxWeightG(), e.itemBase64());
+          saveEntry(player, updated);
+          openEntry(player, updated);
+        } else if (slot == 11) {
+          int delta = event.getClick() == ClickType.RIGHT ? -1 : 1;
+          int newLevel = Math.max(0, e.minRodLevel() + delta);
+          LootEntry updated = new LootEntry(e.key(), e.category(), e.baseWeight(), newLevel,
+              e.broadcast(), e.priceBase(), e.pricePerKg(), e.payoutMultiplier(), e.qualitySWeight(),
+              e.qualityAWeight(), e.qualityBWeight(), e.qualityCWeight(), e.minWeightG(),
+              e.maxWeightG(), e.itemBase64());
+          saveEntry(player, updated);
+          openEntry(player, updated);
+        } else if (slot == 12) {
+          LootEntry updated = new LootEntry(e.key(), e.category(), e.baseWeight(), e.minRodLevel(),
+              !e.broadcast(), e.priceBase(), e.pricePerKg(), e.payoutMultiplier(), e.qualitySWeight(),
+              e.qualityAWeight(), e.qualityBWeight(), e.qualityCWeight(), e.minWeightG(),
+              e.maxWeightG(), e.itemBase64());
+          saveEntry(player, updated);
+          openEntry(player, updated);
+        } else if (slot == 13) {
+          editors.put(player.getUniqueId(), new Editor(msg -> {
+            try {
+              double val = Double.parseDouble(msg);
+              LootEntry updated = new LootEntry(e.key(), e.category(), e.baseWeight(),
+                  e.minRodLevel(), e.broadcast(), val, e.pricePerKg(), e.payoutMultiplier(),
+                  e.qualitySWeight(), e.qualityAWeight(), e.qualityBWeight(), e.qualityCWeight(),
+                  e.minWeightG(), e.maxWeightG(), e.itemBase64());
+              saveEntry(player, updated);
+            } catch (NumberFormatException ex) {
+              player.sendMessage("Invalid number");
+            }
+          }, p -> openEntry(p, lootService.getEntry(e.key()))));
+          player.closeInventory();
+          player.sendMessage("Enter price base in chat");
+        } else if (slot == 14) {
+          editors.put(player.getUniqueId(), new Editor(msg -> {
+            try {
+              double val = Double.parseDouble(msg);
+              LootEntry updated = new LootEntry(e.key(), e.category(), e.baseWeight(),
+                  e.minRodLevel(), e.broadcast(), e.priceBase(), val, e.payoutMultiplier(),
+                  e.qualitySWeight(), e.qualityAWeight(), e.qualityBWeight(), e.qualityCWeight(),
+                  e.minWeightG(), e.maxWeightG(), e.itemBase64());
+              saveEntry(player, updated);
+            } catch (NumberFormatException ex) {
+              player.sendMessage("Invalid number");
+            }
+          }, p -> openEntry(p, lootService.getEntry(e.key()))));
+          player.closeInventory();
+          player.sendMessage("Enter price per kg in chat");
+        } else if (slot == 15) {
+          editors.put(player.getUniqueId(), new Editor(msg -> {
+            try {
+              double val = Double.parseDouble(msg);
+              LootEntry updated = new LootEntry(e.key(), e.category(), e.baseWeight(),
+                  e.minRodLevel(), e.broadcast(), e.priceBase(), e.pricePerKg(), val,
+                  e.qualitySWeight(), e.qualityAWeight(), e.qualityBWeight(), e.qualityCWeight(),
+                  e.minWeightG(), e.maxWeightG(), e.itemBase64());
+              saveEntry(player, updated);
+            } catch (NumberFormatException ex) {
+              player.sendMessage("Invalid number");
+            }
+          }, p -> openEntry(p, lootService.getEntry(e.key()))));
+          player.closeInventory();
+          player.sendMessage("Enter payout multiplier in chat");
+        } else if (slot == 16) {
+          editors.put(player.getUniqueId(), new Editor(msg -> {
+            try {
+              double val = Double.parseDouble(msg);
+              LootEntry updated = new LootEntry(e.key(), e.category(), e.baseWeight(),
+                  e.minRodLevel(), e.broadcast(), e.priceBase(), e.pricePerKg(),
+                  e.payoutMultiplier(), e.qualitySWeight(), e.qualityAWeight(), e.qualityBWeight(),
+                  e.qualityCWeight(), val, e.maxWeightG(), e.itemBase64());
+              saveEntry(player, updated);
+            } catch (NumberFormatException ex) {
+              player.sendMessage("Invalid number");
+            }
+          }, p -> openEntry(p, lootService.getEntry(e.key()))));
+          player.closeInventory();
+          player.sendMessage("Enter min weight g in chat");
+        } else if (slot == 17) {
+          editors.put(player.getUniqueId(), new Editor(msg -> {
+            try {
+              double val = Double.parseDouble(msg);
+              LootEntry updated = new LootEntry(e.key(), e.category(), e.baseWeight(),
+                  e.minRodLevel(), e.broadcast(), e.priceBase(), e.pricePerKg(),
+                  e.payoutMultiplier(), e.qualitySWeight(), e.qualityAWeight(), e.qualityBWeight(),
+                  e.qualityCWeight(), e.minWeightG(), val, e.itemBase64());
+              saveEntry(player, updated);
+            } catch (NumberFormatException ex) {
+              player.sendMessage("Invalid number");
+            }
+          }, p -> openEntry(p, lootService.getEntry(e.key()))));
+          player.closeInventory();
+          player.sendMessage("Enter max weight g in chat");
+        }
+      }
     }
   }
 
   @EventHandler
   public void onChat(AsyncPlayerChatEvent event) {
-    Consumer<String> consumer = editors.remove(event.getPlayer().getUniqueId());
-    if (consumer == null) {
+    Editor editor = editors.remove(event.getPlayer().getUniqueId());
+    if (editor == null) {
       return;
     }
     event.setCancelled(true);
     String msg = event.getMessage();
     Bukkit.getScheduler().runTask(plugin, () -> {
-      consumer.accept(msg);
+      editor.consumer.accept(msg);
       event.getPlayer().sendMessage("Updated.");
-      openEconomy(event.getPlayer());
+      editor.after.accept(event.getPlayer());
     });
+  }
+
+  private static class Editor {
+    final Consumer<String> consumer;
+    final Consumer<Player> after;
+    Editor(Consumer<String> consumer, Consumer<Player> after) {
+      this.consumer = consumer;
+      this.after = after;
+    }
   }
 
   private static class MirrorData {
@@ -603,14 +845,23 @@ public class AdminLootEditorMenu implements Listener {
     final Type type;
     final Map<Integer, LootEntry> weightMap;
     final Map<Integer, Category> scaleMap;
+    final LootEntry entry;
     Holder(Type type) {
-      this(type, new HashMap<>(), new EnumMap<>(Category.class));
+      this(type, null, new HashMap<>(), new EnumMap<>(Category.class));
     }
     Holder(Type type, Map<Integer, LootEntry> weightMap) {
-      this(type, weightMap, new EnumMap<>(Category.class));
+      this(type, null, weightMap, new EnumMap<>(Category.class));
     }
     Holder(Type type, Map<Integer, LootEntry> weightMap, Map<Integer, Category> scaleMap) {
+      this(type, null, weightMap, scaleMap);
+    }
+    Holder(Type type, LootEntry entry) {
+      this(type, entry, new HashMap<>(), new EnumMap<>(Category.class));
+    }
+    Holder(Type type, LootEntry entry, Map<Integer, LootEntry> weightMap,
+        Map<Integer, Category> scaleMap) {
       this.type = type;
+      this.entry = entry;
       this.weightMap = weightMap;
       this.scaleMap = scaleMap;
     }
