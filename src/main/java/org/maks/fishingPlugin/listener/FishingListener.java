@@ -68,7 +68,13 @@ public class FishingListener implements Listener {
       return;
     }
     int rodLevel = levelService.getLevel(player);
-    LootEntry loot = lootService.roll(rodLevel);
+    LootEntry loot;
+    try {
+      loot = lootService.roll(rodLevel);
+    } catch (IllegalStateException e) {
+      player.sendMessage("No loot configured.");
+      return;
+    }
     Awarder.AwardResult res = awarder.give(player, loot);
     if (res.item() != null) {
       double kg = res.weightG() / 1000.0;

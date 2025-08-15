@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map;
 import javax.sql.DataSource;
@@ -15,6 +16,17 @@ public class ParamRepo {
 
   public ParamRepo(DataSource dataSource) {
     this.dataSource = dataSource;
+  }
+
+  /** Create backing table if it doesn't exist. */
+  public void init() throws SQLException {
+    String sql = "CREATE TABLE IF NOT EXISTS fishing_param (" +
+        "`key` VARCHAR(64) PRIMARY KEY, " +
+        "value TEXT NOT NULL" +
+        ")";
+    try (Connection con = dataSource.getConnection(); Statement st = con.createStatement()) {
+      st.executeUpdate(sql);
+    }
   }
 
   public Map<String, String> findAll() throws SQLException {

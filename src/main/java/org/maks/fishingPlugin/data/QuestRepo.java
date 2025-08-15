@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import javax.sql.DataSource;
@@ -16,6 +17,23 @@ public class QuestRepo {
 
   public QuestRepo(DataSource dataSource) {
     this.dataSource = dataSource;
+  }
+
+  /** Create backing table if it doesn't exist. */
+  public void init() throws SQLException {
+    String sql = "CREATE TABLE IF NOT EXISTS fishing_quest (" +
+        "stage INT PRIMARY KEY, " +
+        "title VARCHAR(255) NOT NULL, " +
+        "lore TEXT, " +
+        "goal_type VARCHAR(32) NOT NULL, " +
+        "goal INT NOT NULL, " +
+        "reward_type VARCHAR(32) NOT NULL, " +
+        "reward DOUBLE NOT NULL, " +
+        "reward_data TEXT" +
+        ")";
+    try (Connection con = dataSource.getConnection(); Statement st = con.createStatement()) {
+      st.executeUpdate(sql);
+    }
   }
 
   public List<QuestStage> findAll() throws SQLException {
