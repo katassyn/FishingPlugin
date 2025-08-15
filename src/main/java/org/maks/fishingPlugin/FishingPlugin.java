@@ -31,7 +31,7 @@ import org.maks.fishingPlugin.service.QuickSellService;
 import org.maks.fishingPlugin.service.TeleportService;
 import org.maks.fishingPlugin.gui.MainMenu;
 import org.maks.fishingPlugin.gui.QuickSellMenu;
-import org.maks.fishingPlugin.gui.RodShopMenu;
+import org.maks.fishingPlugin.gui.ShopMenu;
 import org.maks.fishingPlugin.gui.QuestMenu;
 import org.maks.fishingPlugin.gui.AdminLootEditorMenu;
 import org.maks.fishingPlugin.gui.AdminQuestEditorMenu;
@@ -172,11 +172,11 @@ public final class FishingPlugin extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(new QteListener(qteService), this);
 
         QuickSellMenu quickSellMenu = new QuickSellMenu(quickSellService);
-        RodShopMenu rodShopMenu = new RodShopMenu();
+        ShopMenu shopMenu = new ShopMenu(this);
         QuestMenu questMenu = new QuestMenu(questService);
         AdminQuestEditorMenu adminQuestMenu = new AdminQuestEditorMenu(questService, questRepo);
         AdminLootEditorMenu adminMenu = new AdminLootEditorMenu(lootService, lootRepo, paramRepo, adminQuestMenu);
-        MainMenu mainMenu = new MainMenu(quickSellMenu, rodShopMenu, questMenu, teleportService,
+        MainMenu mainMenu = new MainMenu(quickSellMenu, shopMenu, questMenu, teleportService,
             requiredPlayerLevel);
         getCommand("fishing").setExecutor(new FishingCommand(mainMenu, adminMenu, requiredPlayerLevel));
 

@@ -48,7 +48,7 @@ public class QteService {
     ClickType req = ThreadLocalRandom.current().nextBoolean() ? ClickType.LEFT : ClickType.RIGHT;
     long expiry = System.currentTimeMillis() + windowMs;
     states.put(player.getUniqueId(), new State(req, expiry, clicks));
-    String msg = req == ClickType.LEFT ? "Kliknij LPM!" : "Kliknij PPM!";
+    String msg = req == ClickType.LEFT ? "Click left mouse button!" : "Click right mouse button!";
     player.sendActionBar(Component.text(msg));
   }
 
@@ -58,18 +58,18 @@ public class QteService {
     if (antiCheat.record(player.getUniqueId(), now)) {
       if (macroAction == MacroAction.CANCEL) {
         states.remove(player.getUniqueId());
-        player.sendMessage("Wykryto makro!");
+        player.sendMessage("Macro detected!");
         return;
       } else {
         antiCheat.flag(player.getUniqueId());
-        player.sendMessage("Wykryto makro!");
+        player.sendMessage("Macro detected!");
       }
     }
     State st = states.get(player.getUniqueId());
     if (st == null) return;
     if (now > st.expiry) {
       states.remove(player.getUniqueId());
-      player.sendMessage("Za późno!");
+      player.sendMessage("Too late!");
       return;
     }
     if (st.success) return;
@@ -80,12 +80,12 @@ public class QteService {
       } else {
         st.required = ThreadLocalRandom.current().nextBoolean() ? ClickType.LEFT : ClickType.RIGHT;
         st.expiry = now + windowMs;
-        String msg = st.required == ClickType.LEFT ? "Kliknij LPM!" : "Kliknij PPM!";
+        String msg = st.required == ClickType.LEFT ? "Click left mouse button!" : "Click right mouse button!";
         player.sendActionBar(Component.text(msg));
       }
     } else {
       states.remove(player.getUniqueId());
-      player.sendMessage("Zły przycisk!");
+      player.sendMessage("Wrong button!");
     }
   }
 
