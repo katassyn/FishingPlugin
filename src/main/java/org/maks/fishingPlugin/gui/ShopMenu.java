@@ -10,16 +10,23 @@ import org.bukkit.plugin.java.JavaPlugin;
 public class ShopMenu {
 
   private final JavaPlugin plugin;
+  private final int requiredLevel;
 
-  public ShopMenu(JavaPlugin plugin) {
+  public ShopMenu(JavaPlugin plugin, int requiredLevel) {
     this.plugin = plugin;
+    this.requiredLevel = requiredLevel;
   }
 
   /**
    * Grant temporary permission and execute the fisherman shop command.
    */
   public void open(Player player) {
-    PermissionAttachment attachment = player.addAttachment(plugin, "mycraftingplugin.use", true);
+    if (player.getLevel() < requiredLevel) {
+      player.sendMessage("You need level " + requiredLevel + " to access the shop.");
+      return;
+    }
+    PermissionAttachment attachment =
+        player.addAttachment(plugin, "mycraftingplugin.use", true);
     player.performCommand("fisherman_shop");
     player.removeAttachment(attachment);
   }

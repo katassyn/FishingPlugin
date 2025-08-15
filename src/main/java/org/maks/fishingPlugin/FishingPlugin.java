@@ -206,7 +206,7 @@ public final class FishingPlugin extends JavaPlugin {
         Bukkit.getOnlinePlayers().forEach(levelService::loadProfile);
 
         QuickSellMenu quickSellMenu = new QuickSellMenu(quickSellService);
-        ShopMenu shopMenu = new ShopMenu(this);
+        ShopMenu shopMenu = new ShopMenu(this, requiredPlayerLevel);
         QuestMenu questMenu = new QuestMenu(questService);
         PriceListMenu priceListMenu = new PriceListMenu(lootService, quickSellService);
         StatsMenu statsMenu = new StatsMenu(levelService, lootService);
