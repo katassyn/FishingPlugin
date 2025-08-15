@@ -2,6 +2,7 @@ package org.maks.fishingPlugin.data;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import java.sql.SQLException;
 import javax.sql.DataSource;
 
 /**
@@ -11,7 +12,7 @@ public class Database {
 
   private final HikariDataSource dataSource;
 
-  public Database(String jdbcUrl, String username, String password) {
+  public Database(String jdbcUrl, String username, String password) throws SQLException {
     HikariConfig config = new HikariConfig();
     config.setJdbcUrl(jdbcUrl);
     if (username != null) {
@@ -20,7 +21,11 @@ public class Database {
     if (password != null) {
       config.setPassword(password);
     }
-    this.dataSource = new HikariDataSource(config);
+    try {
+      this.dataSource = new HikariDataSource(config);
+    } catch (RuntimeException e) {
+      throw new SQLException("Failed to initialize connection pool", e);
+    }
   }
 
   public DataSource getDataSource() {

@@ -7,7 +7,6 @@ import java.util.Map;
 import javax.sql.DataSource;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.flywaydb.core.Flyway;
 import org.maks.fishingPlugin.command.FishingCommand;
 import org.maks.fishingPlugin.data.Database;
 import org.maks.fishingPlugin.data.LootRepo;
@@ -82,9 +81,14 @@ public final class FishingPlugin extends JavaPlugin {
         String user = dbSec != null ? dbSec.getString("user", "root") : "root";
         String pass = dbSec != null ? dbSec.getString("password", "") : "";
         String jdbcUrl = String.format("jdbc:mysql://%s:%d/%s", host, port, dbName);
-        this.database = new Database(jdbcUrl, user, pass);
+        try {
+            this.database = new Database(jdbcUrl, user, pass);
+        } catch (SQLException e) {
+            getLogger().severe("Failed to connect to database: " + e.getMessage());
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
         DataSource ds = database.getDataSource();
-        Flyway.configure().dataSource(ds).load().migrate();
         this.lootRepo = new LootRepo(ds);
         this.mirrorItemRepo = new MirrorItemRepo(ds);
         this.questRepo = new QuestRepo(ds);
