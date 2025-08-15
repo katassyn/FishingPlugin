@@ -21,9 +21,9 @@ public class QuickSellService {
   private final NamespacedKey keyKey;
   private final NamespacedKey weightKey;
   private final NamespacedKey qualityKey;
-  private final double globalMultiplier;
-  private final double tax;
-  private final String currencySymbol;
+  private double globalMultiplier;
+  private double tax;
+  private String currencySymbol;
 
   public QuickSellService(JavaPlugin plugin, LootService lootService, Economy economy,
       double globalMultiplier, double tax, String currencySymbol) {
@@ -148,5 +148,30 @@ public class QuickSellService {
 
   public String currencySymbol() {
     return currencySymbol;
+  }
+
+  /** Get the current global multiplier. */
+  public double globalMultiplier() {
+    return globalMultiplier;
+  }
+
+  /** Get the current quick sell tax. */
+  public double tax() {
+    return tax;
+  }
+
+  /** Update the global payout multiplier. */
+  public void setGlobalMultiplier(double globalMultiplier) {
+    this.globalMultiplier = globalMultiplier;
+  }
+
+  /** Update the quick sell tax. */
+  public void setTax(double tax) {
+    this.tax = tax;
+  }
+
+  /** Update the currency symbol used in menus. */
+  public void setCurrencySymbol(String currencySymbol) {
+    this.currencySymbol = currencySymbol;
   }
 }
