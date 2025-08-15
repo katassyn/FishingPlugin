@@ -59,8 +59,12 @@ public class MainMenu implements Listener {
     return inv;
   }
 
-  /** Open the main menu. */
+  /** Open the main menu if the player meets the level requirement. */
   public void open(Player player) {
+    if (player.getLevel() < requiredLevel) {
+      player.sendMessage("You need level " + requiredLevel + " to use fishing features.");
+      return;
+    }
     player.openInventory(createInventory());
   }
 

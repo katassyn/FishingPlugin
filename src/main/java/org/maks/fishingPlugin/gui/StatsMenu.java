@@ -13,7 +13,6 @@ import org.bukkit.inventory.meta.ItemMeta;
 import net.kyori.adventure.text.Component;
 import org.maks.fishingPlugin.model.Category;
 import org.maks.fishingPlugin.model.LootEntry;
-import org.maks.fishingPlugin.model.ScaleConf;
 import org.maks.fishingPlugin.service.LevelService;
 import org.maks.fishingPlugin.service.LootService;
 
@@ -54,14 +53,7 @@ public class StatsMenu {
     Map<Category, Double> weights = new EnumMap<>(Category.class);
     double total = 0.0;
     for (LootEntry e : lootService.getEntries()) {
-      if (level < e.minRodLevel()) {
-        continue;
-      }
-      ScaleConf conf = lootService.getScale(e.category());
-      double w = e.baseWeight();
-      if (conf != null) {
-        w *= conf.mult(level);
-      }
+      double w = lootService.effectiveWeight(e, level);
       weights.merge(e.category(), w, Double::sum);
       total += w;
     }
