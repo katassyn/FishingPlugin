@@ -28,6 +28,7 @@ import org.maks.fishingPlugin.service.LootService;
 import org.maks.fishingPlugin.service.QteService;
 import org.maks.fishingPlugin.service.QuestChainService;
 import org.maks.fishingPlugin.service.QuickSellService;
+import org.maks.fishingPlugin.service.TeleportService;
 import org.maks.fishingPlugin.gui.MainMenu;
 import org.maks.fishingPlugin.gui.QuickSellMenu;
 import org.maks.fishingPlugin.gui.RodShopMenu;
@@ -45,6 +46,7 @@ public final class FishingPlugin extends JavaPlugin {
     private QteService qteService;
     private AntiCheatService antiCheatService;
     private QuestChainService questService;
+    private TeleportService teleportService;
     private Economy economy;
     private int requiredPlayerLevel;
     private Database database;
@@ -158,6 +160,7 @@ public final class FishingPlugin extends JavaPlugin {
         QteService.MacroAction macroAction = QteService.MacroAction.valueOf(actionStr.toUpperCase());
 
         this.qteService = new QteService(antiCheatService, clicks, windowMs, macroAction);
+        this.teleportService = new TeleportService(this);
         this.questService = new QuestChainService(economy, questRepo, questProgressRepo, this);
         if (pm.getPlugin("PlaceholderAPI") != null) {
             new org.maks.fishingPlugin.integration.FishingExpansion(this).register();
@@ -173,7 +176,8 @@ public final class FishingPlugin extends JavaPlugin {
         QuestMenu questMenu = new QuestMenu(questService);
         AdminQuestEditorMenu adminQuestMenu = new AdminQuestEditorMenu(questService, questRepo);
         AdminLootEditorMenu adminMenu = new AdminLootEditorMenu(lootService, lootRepo, paramRepo, adminQuestMenu);
-        MainMenu mainMenu = new MainMenu(quickSellMenu, rodShopMenu, questMenu);
+        MainMenu mainMenu = new MainMenu(quickSellMenu, rodShopMenu, questMenu, teleportService,
+            requiredPlayerLevel);
         getCommand("fishing").setExecutor(new FishingCommand(mainMenu, adminMenu, requiredPlayerLevel));
 
         getLogger().info("FishingPlugin enabled");
