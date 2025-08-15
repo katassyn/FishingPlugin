@@ -13,6 +13,7 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.TextComponent;
 
 /**
  * Handles creation, detection and updating of the custom fishing rod item.
@@ -60,7 +61,7 @@ public class RodService {
     int filled = (int) Math.round((double) xp / needed * bars);
     if (filled > bars) filled = bars;
 
-    Component.Builder builder = Component.text().append(Component.text("[", NamedTextColor.GRAY));
+    TextComponent.Builder builder = Component.text().append(Component.text("[", NamedTextColor.GRAY));
     for (int i = 0; i < bars; i++) {
       builder.append(Component.text("█", i < filled ? NamedTextColor.GRAY : NamedTextColor.DARK_GRAY));
 
