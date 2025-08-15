@@ -139,7 +139,12 @@ public final class FishingPlugin extends JavaPlugin {
                 } catch (IllegalArgumentException ignored) {}
             }
         }
-        this.lootService = new LootService(scaling);
+        Map<Category, Double> catWeights = new EnumMap<>(Category.class);
+        for (Category cat : Category.values()) {
+            double w = Double.parseDouble(params.getOrDefault("category_weight_" + cat.name(), "1.0"));
+            catWeights.put(cat, w);
+        }
+        this.lootService = new LootService(scaling, catWeights);
         try {
             for (LootEntry entry : lootRepo.findAll()) {
                 lootService.addEntry(entry);
