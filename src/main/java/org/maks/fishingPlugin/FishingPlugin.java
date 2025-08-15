@@ -97,6 +97,18 @@ public final class FishingPlugin extends JavaPlugin {
         this.questProgressRepo = new QuestProgressRepo(ds);
         this.paramRepo = new ParamRepo(ds);
         this.profileRepo = new ProfileRepo(ds);
+        try {
+            lootRepo.init();
+            mirrorItemRepo.init();
+            questRepo.init();
+            questProgressRepo.init();
+            paramRepo.init();
+            profileRepo.init();
+        } catch (SQLException e) {
+            getLogger().severe("Failed to initialize database tables: " + e.getMessage());
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
         this.levelService = new LevelService(profileRepo, this);
         this.mirrorItemService = new MirrorItemService();
         this.rodService = new RodService(this, levelService);
