@@ -16,6 +16,7 @@ import org.maks.fishingPlugin.data.ProfileRepo;
 import org.maks.fishingPlugin.data.QuestRepo;
 import org.maks.fishingPlugin.data.QuestProgressRepo;
 import org.maks.fishingPlugin.listener.FishingListener;
+import org.maks.fishingPlugin.listener.ProfileListener;
 import org.maks.fishingPlugin.listener.QteListener;
 import org.maks.fishingPlugin.model.Category;
 import org.maks.fishingPlugin.model.LootEntry;
@@ -61,7 +62,6 @@ public final class FishingPlugin extends JavaPlugin {
 
     @Override
     public void onEnable() {
-        this.levelService = new LevelService(this);
         saveDefaultConfig();
         var pm = getServer().getPluginManager();
         this.hasEliteLootbox = pm.getPlugin("EliteLootbox") != null;
@@ -76,6 +76,7 @@ public final class FishingPlugin extends JavaPlugin {
         this.questProgressRepo = new QuestProgressRepo(ds);
         this.paramRepo = new ParamRepo(ds);
         this.profileRepo = new ProfileRepo(ds);
+        this.levelService = new LevelService(profileRepo, this);
 
         Map<String, String> params = new HashMap<>();
         try {
@@ -166,10 +167,12 @@ public final class FishingPlugin extends JavaPlugin {
             new org.maks.fishingPlugin.integration.FishingExpansion(this).register();
         }
 
+        Bukkit.getPluginManager().registerEvents(new ProfileListener(levelService), this);
         Bukkit.getPluginManager().registerEvents(
             new FishingListener(lootService, awarder, levelService, qteService, questService, requiredPlayerLevel,
                 antiCheatService, dropMult), this);
         Bukkit.getPluginManager().registerEvents(new QteListener(qteService), this);
+        Bukkit.getOnlinePlayers().forEach(levelService::loadProfile);
 
         QuickSellMenu quickSellMenu = new QuickSellMenu(quickSellService);
         ShopMenu shopMenu = new ShopMenu(this);
@@ -209,6 +212,9 @@ public final class FishingPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (levelService != null) {
+            Bukkit.getOnlinePlayers().forEach(levelService::saveProfile);
+        }
         if (database != null) {
             database.close();
         }

@@ -1,22 +1,70 @@
 package org.maks.fishingPlugin.service;
 
-import org.bukkit.NamespacedKey;
+import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+import java.util.logging.Logger;
 import org.bukkit.entity.Player;
-import org.bukkit.persistence.PersistentDataContainer;
-import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.maks.fishingPlugin.data.Profile;
+import org.maks.fishingPlugin.data.ProfileRepo;
 
 /**
  * Handles rod experience calculations and persistence.
  */
 public class LevelService {
 
-  private final NamespacedKey levelKey;
-  private final NamespacedKey xpKey;
+  private final ProfileRepo profileRepo;
+  private final Logger logger;
+  private final Map<UUID, Profile> profiles = new HashMap<>();
 
-  public LevelService(JavaPlugin plugin) {
-    this.levelKey = new NamespacedKey(plugin, "rod_level");
-    this.xpKey = new NamespacedKey(plugin, "rod_xp");
+  public LevelService(ProfileRepo profileRepo, JavaPlugin plugin) {
+    this.profileRepo = profileRepo;
+    this.logger = plugin.getLogger();
+  }
+
+  /**
+   * Load a player profile from the database, creating a default one if missing.
+   */
+  public void loadProfile(Player player) {
+    UUID id = player.getUniqueId();
+    try {
+      Profile p = profileRepo.find(id).orElse(new Profile(id, 0, 0));
+      profiles.put(id, p);
+    } catch (SQLException e) {
+      logger.warning("Failed to load profile: " + e.getMessage());
+      profiles.put(id, new Profile(id, 0, 0));
+    }
+  }
+
+  /** Save the player's profile back to the database. */
+  public void saveProfile(Player player) {
+    Profile p = profiles.get(player.getUniqueId());
+    if (p == null) {
+      return;
+    }
+    try {
+      profileRepo.upsert(p);
+    } catch (SQLException e) {
+      logger.warning("Failed to save profile: " + e.getMessage());
+    }
+  }
+
+  private Profile profile(Player p) {
+    return profiles.getOrDefault(p.getUniqueId(), new Profile(p.getUniqueId(), 0, 0));
+  }
+
+  public int getLevel(Player p) {
+    return profile(p).rodLevel();
+  }
+
+  public long getXp(Player p) {
+    return profile(p).rodXp();
+  }
+
+  private void set(Player p, int level, long xp) {
+    profiles.put(p.getUniqueId(), new Profile(p.getUniqueId(), level, xp));
   }
 
   /**
@@ -36,26 +84,6 @@ public class LevelService {
     return Math.round(150 * Math.pow(1.12, 15) * Math.pow(1.14, 15) * Math.pow(1.16, level - 30));
   }
 
-  private PersistentDataContainer data(Player p) {
-    return p.getPersistentDataContainer();
-  }
-
-  public int getLevel(Player p) {
-    return data(p).getOrDefault(levelKey, PersistentDataType.INTEGER, 0);
-  }
-
-  public long getXp(Player p) {
-    return data(p).getOrDefault(xpKey, PersistentDataType.LONG, 0L);
-  }
-
-  private void setLevel(Player p, int level) {
-    data(p).set(levelKey, PersistentDataType.INTEGER, level);
-  }
-
-  private void setXp(Player p, long xp) {
-    data(p).set(xpKey, PersistentDataType.LONG, xp);
-  }
-
   /**
    * Awards experience for a catch and handles level ups.
    *
@@ -72,9 +100,7 @@ public class LevelService {
       xp -= neededExp(level);
       level++;
     }
-    setXp(p, xp);
-    setLevel(p, level);
+    set(p, level, xp);
     return level;
   }
 }
-
