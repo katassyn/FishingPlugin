@@ -39,10 +39,6 @@ public class QuickSellService {
     this.qualityKey = new NamespacedKey(plugin, "quality");
   }
 
-  public static String groupKey(String key, org.maks.fishingPlugin.model.Quality quality) {
-    return key + "|" + quality.name();
-  }
-
   private double computePrice(LootEntry entry, double weight,
       org.maks.fishingPlugin.model.Quality quality, int amount) {
     double base = entry.priceBase() + (weight / 1000.0) * entry.pricePerKg();
@@ -50,7 +46,7 @@ public class QuickSellService {
     return base * qualMult * entry.payoutMultiplier() * globalMultiplier * amount;
   }
 
-  private double sell(Player player, java.util.function.Predicate<String> filter) {
+  private double sellFromInventory(Player player) {
     double total = 0;
     ItemStack[] contents = player.getInventory().getContents();
     for (ItemStack item : contents) {
@@ -63,8 +59,7 @@ public class QuickSellService {
       String qualStr = pdc.get(qualityKey, PersistentDataType.STRING);
       if (key == null || weight == null || qualStr == null) continue;
       LootEntry entry = lootService.getEntry(key);
-      if (entry == null) continue;
-      if (entry.category() != Category.FISH) {
+      if (entry == null || entry.category() != Category.FISH) {
         continue;
       }
       org.maks.fishingPlugin.model.Quality q;
@@ -73,8 +68,6 @@ public class QuickSellService {
       } catch (IllegalArgumentException ex) {
         continue;
       }
-      String gk = groupKey(key, q);
-      if (!filter.test(gk)) continue;
       double price = computePrice(entry, weight, q, item.getAmount());
       total += price;
       player.getInventory().removeItem(item);
@@ -90,19 +83,13 @@ public class QuickSellService {
 
   /** Sell all fish items in the player's inventory. */
   public double sellAll(Player player) {
-    return sell(player, k -> true);
+    return sellFromInventory(player);
   }
 
-  /** Sell only items whose group keys are selected. */
-  public double sellSelected(Player player, java.util.Set<String> selected) {
-    return sell(player, selected::contains);
-  }
-
-  public org.maks.fishingPlugin.model.SellSummary summarize(Player player) {
-    java.util.Map<String, Mutable> map = new java.util.LinkedHashMap<>();
+  /** Sell items provided (e.g., from quick sell GUI) without requiring them to be in the player's inventory. */
+  public double sellItems(Player player, ItemStack[] items) {
     double total = 0;
-    ItemStack[] contents = player.getInventory().getContents();
-    for (ItemStack item : contents) {
+    for (ItemStack item : items) {
       if (item == null) continue;
       ItemMeta meta = item.getItemMeta();
       if (meta == null) continue;
@@ -112,8 +99,7 @@ public class QuickSellService {
       String qualStr = pdc.get(qualityKey, PersistentDataType.STRING);
       if (key == null || weight == null || qualStr == null) continue;
       LootEntry entry = lootService.getEntry(key);
-      if (entry == null) continue;
-      if (entry.category() != Category.FISH) {
+      if (entry == null || entry.category() != Category.FISH) {
         continue;
       }
       org.maks.fishingPlugin.model.Quality q;
@@ -122,33 +108,16 @@ public class QuickSellService {
       } catch (IllegalArgumentException ex) {
         continue;
       }
-      double price = computePrice(entry, weight, q, item.getAmount()) * (1.0 - tax);
-      String gk = groupKey(key, q);
-      Mutable m = map.get(gk);
-      if (m == null) {
-        m = new Mutable(key, q);
-        map.put(gk, m);
-      }
-      m.amount += item.getAmount();
-      m.price += price;
+      double price = computePrice(entry, weight, q, item.getAmount());
       total += price;
     }
-    java.util.List<org.maks.fishingPlugin.model.SellSummary.Entry> entries = new java.util.ArrayList<>();
-    for (Mutable m : map.values()) {
-      entries.add(new org.maks.fishingPlugin.model.SellSummary.Entry(m.key, m.quality, m.amount, m.price));
+    if (total > 0) {
+      double payout = total * (1.0 - tax);
+      economy.depositPlayer(player, payout);
+      levelService.addQsEarned(player, Math.round(payout));
+      return payout;
     }
-    return new org.maks.fishingPlugin.model.SellSummary(entries, total);
-  }
-
-  private static class Mutable {
-    final String key;
-    final org.maks.fishingPlugin.model.Quality quality;
-    int amount;
-    double price;
-    Mutable(String key, org.maks.fishingPlugin.model.Quality quality) {
-      this.key = key;
-      this.quality = quality;
-    }
+    return 0;
   }
 
   public String currencySymbol() {

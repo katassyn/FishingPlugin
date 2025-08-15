@@ -18,6 +18,9 @@ anti_cheat:
   action: CANCEL # or REDUCE
   drop_multiplier: 0.5
 
+# Chance to receive crafting materials like algae or pearls in addition to the main catch.
+craft_drop_chance: 0.05
+
 economy:
   currency_symbol: "$"
   quicksell_tax: 0.0
