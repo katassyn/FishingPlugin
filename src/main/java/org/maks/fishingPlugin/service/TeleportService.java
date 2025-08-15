@@ -14,8 +14,9 @@ public class TeleportService {
 
   public TeleportService(JavaPlugin plugin) {
     ConfigurationSection sec = plugin.getConfig();
-    List<Map<?, ?>> list = sec.getMapList("warps");
-    for (Map<?, ?> m : list) {
+    @SuppressWarnings("unchecked")
+    List<Map<String, Object>> list = (List<Map<String, Object>>) (List<?>) sec.getMapList("warps");
+    for (Map<String, Object> m : list) {
       String key = (String) m.get("key");
       String typeStr = (String) m.get("type");
       WarpType type = WarpType.valueOf(typeStr.toUpperCase());
