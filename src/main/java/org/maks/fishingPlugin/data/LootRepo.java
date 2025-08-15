@@ -22,7 +22,7 @@ public class LootRepo {
   public List<LootEntry> findAll() throws SQLException {
     String sql = "SELECT key, category, base_weight, min_rod_level, broadcast, " +
         "price_base, price_per_kg, payout_multiplier, quality_s_weight, quality_a_weight, " +
-        "quality_b_weight, quality_c_weight, min_weight_g, max_weight_g, item_base64 FROM loot";
+        "quality_b_weight, quality_c_weight, min_weight_g, max_weight_g, item_base64 FROM fishing_item_def";
     try (Connection con = dataSource.getConnection();
          PreparedStatement ps = con.prepareStatement(sql);
          ResultSet rs = ps.executeQuery()) {
@@ -53,7 +53,15 @@ public class LootRepo {
   /** Insert or update a loot entry. */
   public void upsert(LootEntry entry) throws SQLException {
     String sql =
-        "MERGE INTO loot KEY(key) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+        "INSERT INTO fishing_item_def(key,category,base_weight,min_rod_level,broadcast,price_base," +
+            "price_per_kg,payout_multiplier,quality_s_weight,quality_a_weight,quality_b_weight,quality_c_weight," +
+            "min_weight_g,max_weight_g,item_base64) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) " +
+            "ON DUPLICATE KEY UPDATE category=VALUES(category), base_weight=VALUES(base_weight), " +
+            "min_rod_level=VALUES(min_rod_level), broadcast=VALUES(broadcast), price_base=VALUES(price_base), " +
+            "price_per_kg=VALUES(price_per_kg), payout_multiplier=VALUES(payout_multiplier), " +
+            "quality_s_weight=VALUES(quality_s_weight), quality_a_weight=VALUES(quality_a_weight), " +
+            "quality_b_weight=VALUES(quality_b_weight), quality_c_weight=VALUES(quality_c_weight), " +
+            "min_weight_g=VALUES(min_weight_g), max_weight_g=VALUES(max_weight_g), item_base64=VALUES(item_base64)";
     try (Connection con = dataSource.getConnection();
          PreparedStatement ps = con.prepareStatement(sql)) {
       ps.setString(1, entry.key());

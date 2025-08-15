@@ -20,7 +20,7 @@ public class QuestRepo {
 
   public List<QuestStage> findAll() throws SQLException {
     String sql =
-        "SELECT stage, title, lore, goal_type, goal, reward_type, reward, reward_data FROM quest ORDER BY stage";
+        "SELECT stage, title, lore, goal_type, goal, reward_type, reward, reward_data FROM fishing_quest ORDER BY stage";
     try (Connection con = dataSource.getConnection();
          PreparedStatement ps = con.prepareStatement(sql);
          ResultSet rs = ps.executeQuery()) {
@@ -52,7 +52,10 @@ public class QuestRepo {
   /** Insert or update quest stage. */
   public void upsert(QuestStage stage) throws SQLException {
     String sql =
-        "MERGE INTO quest KEY(stage) (stage,title,lore,goal_type,goal,reward_type,reward,reward_data) VALUES (?,?,?,?,?,?,?,?)";
+        "INSERT INTO fishing_quest(stage,title,lore,goal_type,goal,reward_type,reward,reward_data) " +
+            "VALUES (?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE title=VALUES(title), lore=VALUES(lore), " +
+            "goal_type=VALUES(goal_type), goal=VALUES(goal), reward_type=VALUES(reward_type), " +
+            "reward=VALUES(reward), reward_data=VALUES(reward_data)";
     try (Connection con = dataSource.getConnection();
          PreparedStatement ps = con.prepareStatement(sql)) {
       ps.setInt(1, stage.stage());
