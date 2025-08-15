@@ -16,6 +16,10 @@ commands:
     description: Give the fishing rod item
     usage: /fishingrod
     permission: fishing.admin
+  adminrod:
+    description: Give the admin fishing rod
+    usage: /adminrod
+    permission: fishing.admin
 permissions:
   fishing.admin:
     description: Allows editing loot and quests

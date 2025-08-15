@@ -45,6 +45,7 @@ import org.maks.fishingPlugin.gui.AdminLootEditorMenu;
 import org.maks.fishingPlugin.gui.AdminQuestEditorMenu;
 import org.maks.fishingPlugin.command.QuickSellCommand;
 import org.maks.fishingPlugin.command.GiveRodCommand;
+import org.maks.fishingPlugin.command.AdminRodCommand;
 import net.milkbowl.vault.economy.Economy;
 
 public final class FishingPlugin extends JavaPlugin {
@@ -266,7 +267,8 @@ public final class FishingPlugin extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(new ProfileListener(levelService, antiCheatService, rodService), this);
         Bukkit.getPluginManager().registerEvents(
             new FishingListener(lootService, awarder, levelService, qteService, questService, requiredPlayerLevel,
-                antiCheatService, dropMult, craftChance), this);
+                antiCheatService, dropMult, craftChance, rodService), this);
+
         Bukkit.getPluginManager().registerEvents(new QteListener(qteService), this);
         Bukkit.getOnlinePlayers().forEach(p -> {
             levelService.loadProfile(p);
@@ -283,6 +285,7 @@ public final class FishingPlugin extends JavaPlugin {
         getCommand("fishing").setExecutor(new FishingCommand(mainMenu, adminMenu, requiredPlayerLevel));
         getCommand("fishsell").setExecutor(new QuickSellCommand(quickSellMenu));
         getCommand("fishingrod").setExecutor(new GiveRodCommand(rodService));
+        getCommand("adminrod").setExecutor(new AdminRodCommand(rodService));
 
         Bukkit.getPluginManager().registerEvents(mainMenu, this);
         Bukkit.getPluginManager().registerEvents(quickSellMenu, this);
@@ -337,18 +340,19 @@ public final class FishingPlugin extends JavaPlugin {
             return;
         }
         LootEntry[] defaults = new LootEntry[] {
-            fish("Chinook Salmon", Material.SALMON, 60, 1000, 7000, 7, 3),
-            fish("Coho Salmon", Material.SALMON, 60, 1000, 6000, 7, 3),
-            fish("Sockeye Salmon", Material.SALMON, 60, 800, 5000, 7, 3),
-            fish("Pink Salmon", Material.SALMON, 60, 700, 4500, 7, 3),
-            fish("Atlantic Salmon", Material.SALMON, 60, 1200, 8000, 7, 3),
-            fish("Clownfish", Material.TROPICAL_FISH, 30, 200, 500, 6, 2),
-            fish("Parrotfish", Material.TROPICAL_FISH, 30, 200, 600, 6, 2),
-            fish("Butterflyfish", Material.TROPICAL_FISH, 30, 150, 450, 6, 2),
-            fish("Blue Tang", Material.TROPICAL_FISH, 30, 150, 550, 6, 2),
-            fish("Lionfish", Material.TROPICAL_FISH, 30, 180, 520, 6, 2),
-            fish("Angelfish", Material.TROPICAL_FISH, 30, 170, 530, 6, 2),
-            fish("Pufferfish", Material.PUFFERFISH, 20, 600, 2000, 12, 6)
+            fish("Chinook Salmon", Material.SALMON, 60, 1000, 7000, 10000, 0),
+            fish("Coho Salmon", Material.SALMON, 60, 1000, 6000, 10000, 0),
+            fish("Sockeye Salmon", Material.SALMON, 60, 800, 5000, 10000, 0),
+            fish("Pink Salmon", Material.SALMON, 60, 700, 4500, 10000, 0),
+            fish("Atlantic Salmon", Material.SALMON, 60, 1200, 8000, 10000, 0),
+            fish("Clownfish", Material.TROPICAL_FISH, 30, 200, 500, 10000, 0),
+            fish("Parrotfish", Material.TROPICAL_FISH, 30, 200, 600, 10000, 0),
+            fish("Butterflyfish", Material.TROPICAL_FISH, 30, 150, 450, 10000, 0),
+            fish("Blue Tang", Material.TROPICAL_FISH, 30, 150, 550, 10000, 0),
+            fish("Lionfish", Material.TROPICAL_FISH, 30, 180, 520, 10000, 0),
+            fish("Angelfish", Material.TROPICAL_FISH, 30, 170, 530, 10000, 0),
+            fish("Pufferfish", Material.PUFFERFISH, 20, 600, 2000, 100000, 0)
+
         };
         for (LootEntry e : defaults) {
             lootRepo.upsert(e);

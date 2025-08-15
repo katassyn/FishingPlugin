@@ -2,12 +2,12 @@ package org.maks.fishingPlugin.listener;
 
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.maks.fishingPlugin.service.QteService;
 
-/**
- * Captures mouse look changes during QTE windows.
- */
+/** Captures clicks and movement during QTE windows. */
 public class QteListener implements Listener {
 
   private final QteService qte;
@@ -22,10 +22,15 @@ public class QteListener implements Listener {
         || event.getFrom().getBlockY() != event.getTo().getBlockY()
         || event.getFrom().getBlockZ() != event.getTo().getBlockZ()) {
       qte.fail(event.getPlayer());
-      return;
     }
-    if (event.getFrom().getYaw() != event.getTo().getYaw()) {
-      qte.handleLook(event.getPlayer(), event.getTo().getYaw());
+  }
+
+  @EventHandler
+  public void onInteract(PlayerInteractEvent event) {
+    Action act = event.getAction();
+    if (act == Action.LEFT_CLICK_AIR || act == Action.LEFT_CLICK_BLOCK) {
+      qte.handleClick(event.getPlayer(), event.getPlayer().getLocation().getYaw());
+
     }
   }
 }

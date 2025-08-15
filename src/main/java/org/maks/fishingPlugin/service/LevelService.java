@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Logger;
+import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.maks.fishingPlugin.data.Profile;
@@ -167,6 +168,7 @@ public class LevelService {
     if (rodService != null) {
       rodService.updatePlayerRod(p, level, xp);
     }
+    p.playSound(p.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
     return level;
   }
 
