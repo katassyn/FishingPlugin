@@ -74,7 +74,7 @@ public class AdminLootEditorMenu implements Listener {
     ENTRY
   }
 
-  private static final int[] PREVIEW_LEVELS = {0, 50, 100};
+  private static final int[] PREVIEW_LEVELS = {0, 15, 30, 60, 100};
 
   private ItemStack button(Material mat, String name) {
     ItemStack item = new ItemStack(mat);
