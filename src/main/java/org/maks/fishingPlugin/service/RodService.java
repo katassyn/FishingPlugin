@@ -23,6 +23,7 @@ public class RodService {
   private final NamespacedKey rodKey;
   private final NamespacedKey levelKey;
   private final NamespacedKey xpKey;
+  private final NamespacedKey adminKey;
   private final LevelService levelService;
 
   public RodService(JavaPlugin plugin, LevelService levelService) {
@@ -30,6 +31,7 @@ public class RodService {
     this.rodKey = new NamespacedKey(plugin, "fishing-rod");
     this.levelKey = new NamespacedKey(plugin, "rod-level");
     this.xpKey = new NamespacedKey(plugin, "rod-xp");
+    this.adminKey = new NamespacedKey(plugin, "admin-rod");
   }
 
   private PersistentDataContainer container(ItemMeta meta) {
@@ -44,6 +46,13 @@ public class RodService {
     return container(meta).has(rodKey, PersistentDataType.BYTE);
   }
 
+  /** Determine whether an item is the special admin fishing rod. */
+  public boolean isAdminRod(ItemStack item) {
+    if (!isRod(item)) return false;
+    ItemMeta meta = item.getItemMeta();
+    return meta != null && container(meta).has(adminKey, PersistentDataType.BYTE);
+  }
+
   /** Create a new fishing rod item with the given stats. */
   public ItemStack createRod(int level, long xp) {
     ItemStack rod = new ItemStack(Material.FISHING_ROD);
@@ -51,6 +60,18 @@ public class RodService {
     if (meta != null) {
       container(meta).set(rodKey, PersistentDataType.BYTE, (byte) 1);
       updateMeta(meta, level, xp);
+      rod.setItemMeta(meta);
+    }
+    return rod;
+  }
+
+  /** Create an admin rod starting at level 300 that bypasses drop requirements. */
+  public ItemStack createAdminRod() {
+    ItemStack rod = createRod(300, 0);
+    ItemMeta meta = rod.getItemMeta();
+    if (meta != null) {
+      container(meta).set(adminKey, PersistentDataType.BYTE, (byte) 1);
+      meta.displayName(Component.text("Admin Fishing Rod"));
       rod.setItemMeta(meta);
     }
     return rod;
@@ -118,5 +139,10 @@ public class RodService {
   /** Give a fresh rod to the player. */
   public void giveRod(Player player) {
     player.getInventory().addItem(createRod(1, 0));
+  }
+
+  /** Give the admin rod to the player. */
+  public void giveAdminRod(Player player) {
+    player.getInventory().addItem(createAdminRod());
   }
 }

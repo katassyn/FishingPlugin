@@ -9,7 +9,8 @@ import net.kyori.adventure.title.Title;
 import org.bukkit.entity.Player;
 
 /**
- * Simple QTE system requiring players to swipe their mouse left or right.
+ * Simple QTE system requiring players to swing the crosshair left or right and
+ * confirm with a left-click.
  */
 public class QteService {
 
@@ -54,12 +55,12 @@ public class QteService {
     long expiry = System.currentTimeMillis() + durationMs;
     states.put(player.getUniqueId(), new State(dir, startYaw, expiry));
     String bar = dir == Direction.LEFT ? "<<<<<<" : ">>>>>>";
-    String msg = dir == Direction.LEFT ? "Swipe left" : "Swipe right";
+    String msg = dir == Direction.LEFT ? "Click left" : "Click right";
     player.showTitle(Title.title(Component.text(bar), Component.text(msg)));
   }
 
-  /** Handle mouse look movement during the QTE window. */
-  public void handleLook(Player player, float toYaw) {
+  /** Handle a left-click to validate the required direction. */
+  public void handleClick(Player player, float currentYaw) {
     State st = states.get(player.getUniqueId());
     if (st == null) return;
     long now = System.currentTimeMillis();
@@ -67,11 +68,22 @@ public class QteService {
       states.remove(player.getUniqueId());
       return;
     }
-    float diff = toYaw - st.startYaw;
+    float diff = currentYaw - st.startYaw;
+    diff = (diff + 540) % 360 - 180; // normalize to [-180,180]
     if (st.required == Direction.LEFT && diff <= -yawThreshold) {
       st.success = true;
     } else if (st.required == Direction.RIGHT && diff >= yawThreshold) {
       st.success = true;
+    } else {
+      st.success = false;
+    }
+  }
+
+  /** Mark current QTE as failed due to player movement. */
+  public void fail(Player player) {
+    State st = states.get(player.getUniqueId());
+    if (st != null) {
+      st.success = false;
     }
   }
 
