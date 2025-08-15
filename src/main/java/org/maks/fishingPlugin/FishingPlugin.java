@@ -193,8 +193,9 @@ public final class FishingPlugin extends JavaPlugin {
         var qteSec = getConfig().getConfigurationSection("qte");
         double chance = qteSec != null ? qteSec.getDouble("chance", 0.25) : 0.25;
         long duration = qteSec != null ? qteSec.getLong("duration_ms", 1000L) : 1000L;
+        float yawThreshold = qteSec != null ? (float) qteSec.getDouble("yaw_threshold", 1.0) : 1.0f;
 
-        this.qteService = new QteService(chance, duration);
+        this.qteService = new QteService(chance, duration, yawThreshold);
         this.teleportService = new TeleportService(this);
         this.questService = new QuestChainService(economy, questRepo, questProgressRepo, this);
         if (pm.getPlugin("PlaceholderAPI") != null) {
