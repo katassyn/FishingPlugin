@@ -11,6 +11,7 @@ import org.flywaydb.core.Flyway;
 import org.maks.fishingPlugin.command.FishingCommand;
 import org.maks.fishingPlugin.data.Database;
 import org.maks.fishingPlugin.data.LootRepo;
+import org.maks.fishingPlugin.data.MirrorItemRepo;
 import org.maks.fishingPlugin.data.ParamRepo;
 import org.maks.fishingPlugin.data.ProfileRepo;
 import org.maks.fishingPlugin.data.QuestRepo;
@@ -20,6 +21,7 @@ import org.maks.fishingPlugin.listener.ProfileListener;
 import org.maks.fishingPlugin.listener.QteListener;
 import org.maks.fishingPlugin.model.Category;
 import org.maks.fishingPlugin.model.LootEntry;
+import org.maks.fishingPlugin.model.MirrorItem;
 import org.maks.fishingPlugin.model.ScaleConf;
 import org.maks.fishingPlugin.model.ScaleMode;
 import org.maks.fishingPlugin.service.AntiCheatService;
@@ -29,6 +31,7 @@ import org.maks.fishingPlugin.service.LootService;
 import org.maks.fishingPlugin.service.QteService;
 import org.maks.fishingPlugin.service.QuestChainService;
 import org.maks.fishingPlugin.service.QuickSellService;
+import org.maks.fishingPlugin.service.MirrorItemService;
 import org.maks.fishingPlugin.service.TeleportService;
 import org.maks.fishingPlugin.gui.MainMenu;
 import org.maks.fishingPlugin.gui.QuickSellMenu;
@@ -54,10 +57,12 @@ public final class FishingPlugin extends JavaPlugin {
     private int requiredPlayerLevel;
     private Database database;
     private LootRepo lootRepo;
+    private MirrorItemRepo mirrorItemRepo;
     private QuestRepo questRepo;
     private QuestProgressRepo questProgressRepo;
     private ParamRepo paramRepo;
     private ProfileRepo profileRepo;
+    private MirrorItemService mirrorItemService;
     private boolean hasEliteLootbox;
     private boolean hasWorldGuard;
     private boolean hasCitizens;
@@ -74,11 +79,13 @@ public final class FishingPlugin extends JavaPlugin {
         DataSource ds = database.getDataSource();
         Flyway.configure().dataSource(ds).load().migrate();
         this.lootRepo = new LootRepo(ds);
+        this.mirrorItemRepo = new MirrorItemRepo(ds);
         this.questRepo = new QuestRepo(ds);
         this.questProgressRepo = new QuestProgressRepo(ds);
         this.paramRepo = new ParamRepo(ds);
         this.profileRepo = new ProfileRepo(ds);
         this.levelService = new LevelService(profileRepo, this);
+        this.mirrorItemService = new MirrorItemService();
 
         Map<String, String> params = new HashMap<>();
         try {
@@ -133,8 +140,15 @@ public final class FishingPlugin extends JavaPlugin {
         } catch (SQLException e) {
             getLogger().warning("Failed to load loot entries: " + e.getMessage());
         }
+        try {
+            for (MirrorItem mi : mirrorItemRepo.findAll()) {
+                mirrorItemService.add(mi);
+            }
+        } catch (SQLException e) {
+            getLogger().warning("Failed to load mirror items: " + e.getMessage());
+        }
         this.economy = Bukkit.getServicesManager().getRegistration(Economy.class).getProvider();
-        this.awarder = new Awarder(this);
+        this.awarder = new Awarder(this, mirrorItemService);
         var econSec = getConfig().getConfigurationSection("economy");
         double multiplier = 1.0;
         double tax = 0.0;
