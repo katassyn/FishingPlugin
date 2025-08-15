@@ -48,7 +48,7 @@ public class DatabaseIntegrationTest {
         DataSource ds = database.getDataSource();
         ProfileRepo repo = new ProfileRepo(ds);
         UUID id = UUID.randomUUID();
-        Profile profile = new Profile(id, 5, 10L, 2L, 1500L, 800L, 0L, null,
+        Profile profile = new Profile(id, 5, 10L, 2L, 1500L, 800L, 0L, new byte[] {1,2,3},
                 java.time.Instant.now(), java.time.Instant.now());
         repo.upsert(profile);
         Optional<Profile> loaded = repo.find(id);
