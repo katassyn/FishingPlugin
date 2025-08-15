@@ -1,6 +1,7 @@
 package org.maks.fishingPlugin.service;
 
 import java.sql.SQLException;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -30,11 +31,12 @@ public class LevelService {
   public void loadProfile(Player player) {
     UUID id = player.getUniqueId();
     try {
-      Profile p = profileRepo.find(id).orElse(new Profile(id, 0, 0, 0, 0, 0));
+      Profile p = profileRepo.find(id).orElse(
+          new Profile(id, 0, 0, 0, 0, 0, 0, null, Instant.now(), Instant.now()));
       profiles.put(id, p);
     } catch (SQLException e) {
       logger.warning("Failed to load profile: " + e.getMessage());
-      profiles.put(id, new Profile(id, 0, 0, 0, 0, 0));
+      profiles.put(id, new Profile(id, 0, 0, 0, 0, 0, 0, null, Instant.now(), Instant.now()));
     }
   }
 
@@ -45,7 +47,11 @@ public class LevelService {
       return;
     }
     try {
-      profileRepo.upsert(p);
+      Profile withUpdated = new Profile(p.playerUuid(), p.rodLevel(), p.rodXp(),
+          p.totalCatches(), p.totalWeightG(), p.largestCatchG(), p.qsEarned(),
+          p.lastQteSample(), p.createdAt(), Instant.now());
+      profileRepo.upsert(withUpdated);
+      profiles.put(player.getUniqueId(), withUpdated);
     } catch (SQLException e) {
       logger.warning("Failed to save profile: " + e.getMessage());
     }
@@ -53,7 +59,7 @@ public class LevelService {
 
   private Profile profile(Player p) {
     return profiles.getOrDefault(p.getUniqueId(),
-        new Profile(p.getUniqueId(), 0, 0, 0, 0, 0));
+        new Profile(p.getUniqueId(), 0, 0, 0, 0, 0, 0, null, Instant.now(), Instant.now()));
   }
 
   public int getLevel(Player p) {
@@ -66,8 +72,10 @@ public class LevelService {
 
   private void set(Player p, int level, long xp, long totalCatches, long totalWeightG,
       long largestCatchG) {
+    Profile old = profile(p);
     profiles.put(p.getUniqueId(),
-        new Profile(p.getUniqueId(), level, xp, totalCatches, totalWeightG, largestCatchG));
+        new Profile(p.getUniqueId(), level, xp, totalCatches, totalWeightG, largestCatchG,
+            old.qsEarned(), old.lastQteSample(), old.createdAt(), Instant.now()));
   }
 
   /**
