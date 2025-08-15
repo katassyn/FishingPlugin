@@ -9,7 +9,8 @@ database:
 
 qte:
   clicks: 1
-  window_ms: 1000
+  start_delay_ms: [650, 1100]
+  window_len_ms: [350, 700]
 
 anti_cheat:
   sample_size: 5
