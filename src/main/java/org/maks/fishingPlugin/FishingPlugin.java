@@ -268,6 +268,7 @@ public final class FishingPlugin extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(
             new FishingListener(lootService, awarder, levelService, qteService, questService, requiredPlayerLevel,
                 antiCheatService, dropMult, craftChance, rodService), this);
+
         Bukkit.getPluginManager().registerEvents(new QteListener(qteService), this);
         Bukkit.getOnlinePlayers().forEach(p -> {
             levelService.loadProfile(p);
@@ -351,6 +352,7 @@ public final class FishingPlugin extends JavaPlugin {
             fish("Lionfish", Material.TROPICAL_FISH, 30, 180, 520, 10000, 0),
             fish("Angelfish", Material.TROPICAL_FISH, 30, 170, 530, 10000, 0),
             fish("Pufferfish", Material.PUFFERFISH, 20, 600, 2000, 100000, 0)
+
         };
         for (LootEntry e : defaults) {
             lootRepo.upsert(e);

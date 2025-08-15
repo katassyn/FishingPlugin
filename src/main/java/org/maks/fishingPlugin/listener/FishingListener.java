@@ -20,6 +20,7 @@ import org.bukkit.inventory.ItemFlag;
 import org.bukkit.ChatColor;
 import org.maks.fishingPlugin.service.RodService;
 
+
 /**
  * Listener replacing vanilla fishing drops with custom loot.
  */
@@ -39,6 +40,7 @@ public class FishingListener implements Listener {
   public FishingListener(LootService lootService, Awarder awarder, LevelService levelService,
       QteService qteService, QuestChainService questService, int requiredLevel,
       AntiCheatService antiCheat, double dropMultiplier, double craftChance, RodService rodService) {
+
     this.lootService = lootService;
     this.awarder = awarder;
     this.levelService = levelService;
@@ -70,6 +72,7 @@ public class FishingListener implements Listener {
     event.setCancelled(true);
     event.getHook().remove();
     if (!qteService.verify(player, player.getLocation().getYaw())) {
+
       return;
     }
     boolean penalized = antiCheat.consumeFlag(player.getUniqueId());
@@ -130,6 +133,7 @@ public class FishingListener implements Listener {
       meta.addItemFlags(ItemFlag.HIDE_ENCHANTS, ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE);
       meta.setUnbreakable(true);
       item.setItemMeta(meta);
+
     }
     return item;
   }
@@ -140,5 +144,6 @@ public class FishingListener implements Listener {
       case 2 -> "II";
       default -> "III";
     };
+
   }
 }
