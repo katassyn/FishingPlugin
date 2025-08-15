@@ -180,10 +180,18 @@ public final class FishingPlugin extends JavaPlugin {
 
         var qteSec = getConfig().getConfigurationSection("qte");
         int clicks = qteSec != null ? qteSec.getInt("clicks", 1) : 1;
-        long windowMs = qteSec != null ? qteSec.getLong("window_ms", 1000) : 1000;
+        java.util.List<Long> delayRange =
+            qteSec != null ? qteSec.getLongList("start_delay_ms") : java.util.List.of(650L, 1100L);
+        java.util.List<Long> windowRange =
+            qteSec != null ? qteSec.getLongList("window_len_ms") : java.util.List.of(350L, 700L);
+        long startDelayMin = delayRange.size() > 0 ? delayRange.get(0) : 650L;
+        long startDelayMax = delayRange.size() > 1 ? delayRange.get(1) : startDelayMin;
+        long windowMin = windowRange.size() > 0 ? windowRange.get(0) : 350L;
+        long windowMax = windowRange.size() > 1 ? windowRange.get(1) : windowMin;
         QteService.MacroAction macroAction = QteService.MacroAction.valueOf(actionStr.toUpperCase());
 
-        this.qteService = new QteService(antiCheatService, clicks, windowMs, macroAction);
+        this.qteService = new QteService(this, antiCheatService, clicks, startDelayMin, startDelayMax,
+            windowMin, windowMax, macroAction);
         this.teleportService = new TeleportService(this);
         this.questService = new QuestChainService(economy, questRepo, questProgressRepo, this);
         if (pm.getPlugin("PlaceholderAPI") != null) {

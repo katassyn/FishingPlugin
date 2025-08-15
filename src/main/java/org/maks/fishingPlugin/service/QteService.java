@@ -5,7 +5,9 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 import net.kyori.adventure.text.Component;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.java.JavaPlugin;
 
 /**
  * Configurable multi-click QTE anti-autofish mechanic.
@@ -16,12 +18,14 @@ public class QteService {
 
   private static class State {
     ClickType required;
+    long start;
     long expiry;
     int remaining;
     boolean success;
 
-    State(ClickType required, long expiry, int remaining) {
+    State(ClickType required, long start, long expiry, int remaining) {
       this.required = required;
+      this.start = start;
       this.expiry = expiry;
       this.remaining = remaining;
     }
@@ -29,27 +33,41 @@ public class QteService {
 
   private final Map<UUID, State> states = new ConcurrentHashMap<>();
   private final AntiCheatService antiCheat;
+  private final JavaPlugin plugin;
   private final int clicks;
-  private final long windowMs;
+  private final long startDelayMin;
+  private final long startDelayMax;
+  private final long windowMin;
+  private final long windowMax;
   private final MacroAction macroAction;
 
   public enum MacroAction {CANCEL, REDUCE}
 
-  public QteService(AntiCheatService antiCheat, int clicks, long windowMs,
+  public QteService(JavaPlugin plugin, AntiCheatService antiCheat, int clicks,
+      long startDelayMin, long startDelayMax, long windowMin, long windowMax,
       MacroAction macroAction) {
+    this.plugin = plugin;
     this.antiCheat = antiCheat;
     this.clicks = clicks;
-    this.windowMs = windowMs;
+    this.startDelayMin = startDelayMin;
+    this.startDelayMax = startDelayMax;
+    this.windowMin = windowMin;
+    this.windowMax = windowMax;
     this.macroAction = macroAction;
   }
 
   /** Start a QTE after a bite. */
   public void start(Player player) {
+    long delay = ThreadLocalRandom.current().nextLong(startDelayMin, startDelayMax + 1);
+    long window = ThreadLocalRandom.current().nextLong(windowMin, windowMax + 1);
     ClickType req = ThreadLocalRandom.current().nextBoolean() ? ClickType.LEFT : ClickType.RIGHT;
-    long expiry = System.currentTimeMillis() + windowMs;
-    states.put(player.getUniqueId(), new State(req, expiry, clicks));
-    String msg = req == ClickType.LEFT ? "Click left mouse button!" : "Click right mouse button!";
-    player.sendActionBar(Component.text(msg));
+    long start = System.currentTimeMillis() + delay;
+    long expiry = start + window;
+    states.put(player.getUniqueId(), new State(req, start, expiry, clicks));
+    Bukkit.getScheduler().runTaskLater(plugin, () -> {
+      String msg = req == ClickType.LEFT ? "Click left mouse button!" : "Click right mouse button!";
+      player.sendActionBar(Component.text(msg));
+    }, delay / 50L);
   }
 
   /** Handle a player click during the QTE window. */
@@ -67,6 +85,7 @@ public class QteService {
     }
     State st = states.get(player.getUniqueId());
     if (st == null) return;
+    if (now < st.start) return;
     if (now > st.expiry) {
       states.remove(player.getUniqueId());
       player.sendMessage("Too late!");
@@ -79,7 +98,9 @@ public class QteService {
         st.success = true; // keep state until consume
       } else {
         st.required = ThreadLocalRandom.current().nextBoolean() ? ClickType.LEFT : ClickType.RIGHT;
-        st.expiry = now + windowMs;
+        long window = ThreadLocalRandom.current().nextLong(windowMin, windowMax + 1);
+        st.start = now;
+        st.expiry = now + window;
         String msg = st.required == ClickType.LEFT ? "Click left mouse button!" : "Click right mouse button!";
         player.sendActionBar(Component.text(msg));
       }
