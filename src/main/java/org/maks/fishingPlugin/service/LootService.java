@@ -125,7 +125,7 @@ public class LootService {
    * rod level after applying category scaling and level requirements.
    */
   private double effectiveCategoryWeight(Category cat, int rodLevel) {
-    if (cat == Category.RUNE && rodLevel < 25) {
+    if ((cat == Category.RUNE || cat == Category.TREASURE_MAP) && rodLevel < 25) {
       return 0.0;
     }
     if (cat == Category.TREASURE && rodLevel < 50) {

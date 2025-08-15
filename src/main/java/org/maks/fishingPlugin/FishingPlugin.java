@@ -133,18 +133,20 @@ public final class FishingPlugin extends JavaPlugin {
         double fishPerKg = 0.5;
         double chestBase = 22;
         double runeBase = 40;
+        double mapBase = 40;
         double treasureBase = 80;
         if (gainSec != null) {
             fishBase = gainSec.getDouble("fish_base", fishBase);
             fishPerKg = gainSec.getDouble("fish_per_kg", fishPerKg);
             chestBase = gainSec.getDouble("chest_base", chestBase);
             runeBase = gainSec.getDouble("rune_base", runeBase);
+            mapBase = gainSec.getDouble("map_base", mapBase);
             treasureBase = gainSec.getDouble("treasure_base", treasureBase);
         }
 
         this.levelService = new LevelService(profileRepo, this,
             expBase, expCoeff, expPower,
-            fishBase, fishPerKg, chestBase, runeBase, treasureBase);
+            fishBase, fishPerKg, chestBase, runeBase, mapBase, treasureBase);
 
         this.mirrorItemService = new MirrorItemService();
         this.rodService = new RodService(this, levelService);
@@ -165,6 +167,8 @@ public final class FishingPlugin extends JavaPlugin {
         scaling.put(Category.FISH, new ScaleConf(ScaleMode.EXP, 0.0006, 0));
         scaling.put(Category.FISHERMAN_CHEST, new ScaleConf(ScaleMode.EXP, 0.0025, 0));
         scaling.put(Category.RUNE, new ScaleConf(ScaleMode.EXP, 0.0020, 0));
+        scaling.put(Category.TREASURE_MAP, new ScaleConf(ScaleMode.EXP, 0.0020, 0));
+
         scaling.put(Category.TREASURE, new ScaleConf(ScaleMode.EXP, 0.0040, 0));
         var scaleSec = getConfig().getConfigurationSection("category_scaling");
         if (scaleSec != null) {
@@ -194,9 +198,11 @@ public final class FishingPlugin extends JavaPlugin {
             }
         }
         Map<Category, Double> catWeights = new EnumMap<>(Category.class);
-        catWeights.put(Category.FISH, 9600d);
+        catWeights.put(Category.FISH, 9520d);
         catWeights.put(Category.FISHERMAN_CHEST, 300d);
         catWeights.put(Category.RUNE, 80d);
+        catWeights.put(Category.TREASURE_MAP, 80d);
+
         catWeights.put(Category.TREASURE, 8d);
         var weightSec = getConfig().getConfigurationSection("category_weights");
         if (weightSec != null) {
@@ -336,21 +342,18 @@ public final class FishingPlugin extends JavaPlugin {
     }
 
     private void seedDefaultLoot() throws SQLException {
-        if (!lootRepo.findAll().isEmpty()) {
-            return;
-        }
         LootEntry[] defaults = new LootEntry[] {
-            fish("Chinook Salmon", Material.SALMON, 60, 1000, 7000, 10000, 0),
-            fish("Coho Salmon", Material.SALMON, 60, 1000, 6000, 10000, 0),
-            fish("Sockeye Salmon", Material.SALMON, 60, 800, 5000, 10000, 0),
-            fish("Pink Salmon", Material.SALMON, 60, 700, 4500, 10000, 0),
-            fish("Atlantic Salmon", Material.SALMON, 60, 1200, 8000, 10000, 0),
-            fish("Clownfish", Material.TROPICAL_FISH, 30, 200, 500, 10000, 0),
-            fish("Parrotfish", Material.TROPICAL_FISH, 30, 200, 600, 10000, 0),
-            fish("Butterflyfish", Material.TROPICAL_FISH, 30, 150, 450, 10000, 0),
-            fish("Blue Tang", Material.TROPICAL_FISH, 30, 150, 550, 10000, 0),
-            fish("Lionfish", Material.TROPICAL_FISH, 30, 180, 520, 10000, 0),
-            fish("Angelfish", Material.TROPICAL_FISH, 30, 170, 530, 10000, 0),
+            fish("Chinook Salmon", Material.SALMON, 60, 1000, 7000, 1720, 1380),
+            fish("Coho Salmon", Material.SALMON, 60, 1000, 6000, 1720, 1380),
+            fish("Sockeye Salmon", Material.SALMON, 60, 800, 5000, 1720, 1380),
+            fish("Pink Salmon", Material.SALMON, 60, 700, 4500, 1720, 1380),
+            fish("Atlantic Salmon", Material.SALMON, 60, 1200, 8000, 1720, 1380),
+            fish("Clownfish", Material.TROPICAL_FISH, 30, 200, 500, 1720, 1380),
+            fish("Parrotfish", Material.TROPICAL_FISH, 30, 200, 600, 1720, 1380),
+            fish("Butterflyfish", Material.TROPICAL_FISH, 30, 150, 450, 1720, 1380),
+            fish("Blue Tang", Material.TROPICAL_FISH, 30, 150, 550, 1720, 1380),
+            fish("Lionfish", Material.TROPICAL_FISH, 30, 180, 520, 1720, 1380),
+            fish("Angelfish", Material.TROPICAL_FISH, 30, 170, 530, 1720, 1380),
             fish("Pufferfish", Material.PUFFERFISH, 20, 600, 2000, 100000, 0)
 
         };

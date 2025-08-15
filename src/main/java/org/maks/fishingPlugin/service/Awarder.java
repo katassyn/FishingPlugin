@@ -85,6 +85,8 @@ public class Awarder {
     player.getInventory().addItem(item);
     if (loot.category() == Category.RUNE) {
       Bukkit.broadcastMessage("[FISHING POOL] " + player.getName() + " caught a rune!");
+    } else if (loot.category() == Category.TREASURE_MAP) {
+      Bukkit.broadcastMessage("[FISHING POOL] " + player.getName() + " found a treasure map!");
     } else if (loot.category() == Category.TREASURE) {
       Bukkit.broadcastMessage("[FISHING POOL] " + player.getName() + " found an oceanic treasure!");
     }
