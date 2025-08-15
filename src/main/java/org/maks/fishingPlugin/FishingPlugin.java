@@ -81,7 +81,13 @@ public final class FishingPlugin extends JavaPlugin {
         String user = dbSec != null ? dbSec.getString("user", "root") : "root";
         String pass = dbSec != null ? dbSec.getString("password", "") : "";
         String jdbcUrl = String.format("jdbc:mysql://%s:%d/%s", host, port, dbName);
-        this.database = new Database(jdbcUrl, user, pass);
+        try {
+            this.database = new Database(jdbcUrl, user, pass);
+        } catch (SQLException e) {
+            getLogger().severe("Failed to connect to database: " + e.getMessage());
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
         DataSource ds = database.getDataSource();
         this.lootRepo = new LootRepo(ds);
         this.mirrorItemRepo = new MirrorItemRepo(ds);
