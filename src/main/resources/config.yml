@@ -8,9 +8,8 @@ database:
   password: ""
 
 qte:
-  clicks: 1
-  start_delay_ms: [650, 1100]
-  window_len_ms: [350, 700]
+  chance: 0.25
+  duration_ms: 1000
 
 anti_cheat:
   sample_size: 5

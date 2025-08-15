@@ -51,7 +51,7 @@ public class FishingListener implements Listener {
       return;
     }
     if (event.getState() == PlayerFishEvent.State.BITE) {
-      qteService.start(player); // start QTE with randomized timing
+      qteService.maybeStart(player); // start QTE with chance
       return;
     }
     if (event.getState() != PlayerFishEvent.State.CAUGHT_FISH) {

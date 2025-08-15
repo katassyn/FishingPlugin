@@ -8,7 +8,18 @@ commands:
     description: Fishing commands
     usage: /fishing
     permission: fishing.use
+  fishsell:
+    description: Sell caught fish
+    usage: /fishsell
+    permission: fishing.sell
+  fishingrod:
+    description: Give the fishing rod item
+    usage: /fishingrod
+    permission: fishing.admin
 permissions:
   fishing.admin:
     description: Allows editing loot and quests
     default: op
+  fishing.sell:
+    description: Allows selling fish
+    default: true
