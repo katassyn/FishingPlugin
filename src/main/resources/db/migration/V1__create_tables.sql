@@ -24,8 +24,13 @@ CREATE TABLE IF NOT EXISTS loot (
 
 CREATE TABLE IF NOT EXISTS quest (
     stage INT PRIMARY KEY,
+    title VARCHAR(64) NOT NULL,
+    lore TEXT,
+    goal_type VARCHAR(32) NOT NULL,
     goal INT NOT NULL,
-    reward DOUBLE NOT NULL
+    reward_type VARCHAR(32) NOT NULL,
+    reward DOUBLE NOT NULL,
+    reward_data TEXT
 );
 
 CREATE TABLE IF NOT EXISTS param (
