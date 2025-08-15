@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import javax.sql.DataSource;
@@ -19,8 +20,21 @@ public class MirrorItemRepo {
     this.dataSource = dataSource;
   }
 
+  /** Create backing table if it doesn't exist. */
+  public void init() throws SQLException {
+    String sql = "CREATE TABLE IF NOT EXISTS fishing_mirror_item (" +
+        "`key` VARCHAR(64) PRIMARY KEY, " +
+        "category VARCHAR(32) NOT NULL, " +
+        "broadcast BOOLEAN NOT NULL, " +
+        "item_base64 TEXT NOT NULL" +
+        ")";
+    try (Connection con = dataSource.getConnection(); Statement st = con.createStatement()) {
+      st.executeUpdate(sql);
+    }
+  }
+
   public List<MirrorItem> findAll() throws SQLException {
-    String sql = "SELECT key, category, broadcast, item_base64 FROM fishing_mirror_item";
+    String sql = "SELECT `key`, category, broadcast, item_base64 FROM fishing_mirror_item";
     try (Connection con = dataSource.getConnection();
          PreparedStatement ps = con.prepareStatement(sql);
          ResultSet rs = ps.executeQuery()) {

@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import javax.sql.DataSource;
@@ -19,8 +20,32 @@ public class LootRepo {
     this.dataSource = dataSource;
   }
 
+  /** Create backing table if it doesn't exist. */
+  public void init() throws SQLException {
+    String sql = "CREATE TABLE IF NOT EXISTS fishing_item_def (" +
+        "`key` VARCHAR(64) PRIMARY KEY, " +
+        "category VARCHAR(32) NOT NULL, " +
+        "base_weight DOUBLE NOT NULL, " +
+        "min_rod_level INT NOT NULL, " +
+        "broadcast BOOLEAN NOT NULL, " +
+        "price_base DOUBLE NOT NULL, " +
+        "price_per_kg DOUBLE NOT NULL, " +
+        "payout_multiplier DOUBLE NOT NULL, " +
+        "quality_s_weight DOUBLE NOT NULL, " +
+        "quality_a_weight DOUBLE NOT NULL, " +
+        "quality_b_weight DOUBLE NOT NULL, " +
+        "quality_c_weight DOUBLE NOT NULL, " +
+        "min_weight_g DOUBLE NOT NULL, " +
+        "max_weight_g DOUBLE NOT NULL, " +
+        "item_base64 TEXT NOT NULL" +
+        ")";
+    try (Connection con = dataSource.getConnection(); Statement st = con.createStatement()) {
+      st.executeUpdate(sql);
+    }
+  }
+
   public List<LootEntry> findAll() throws SQLException {
-    String sql = "SELECT key, category, base_weight, min_rod_level, broadcast, " +
+    String sql = "SELECT `key`, category, base_weight, min_rod_level, broadcast, " +
         "price_base, price_per_kg, payout_multiplier, quality_s_weight, quality_a_weight, " +
         "quality_b_weight, quality_c_weight, min_weight_g, max_weight_g, item_base64 FROM fishing_item_def";
     try (Connection con = dataSource.getConnection();
@@ -53,7 +78,7 @@ public class LootRepo {
   /** Insert or update a loot entry. */
   public void upsert(LootEntry entry) throws SQLException {
     String sql =
-        "INSERT INTO fishing_item_def(key,category,base_weight,min_rod_level,broadcast,price_base," +
+        "INSERT INTO fishing_item_def(`key`,category,base_weight,min_rod_level,broadcast,price_base," +
             "price_per_kg,payout_multiplier,quality_s_weight,quality_a_weight,quality_b_weight,quality_c_weight," +
             "min_weight_g,max_weight_g,item_base64) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) " +
             "ON DUPLICATE KEY UPDATE category=VALUES(category), base_weight=VALUES(base_weight), " +

@@ -22,6 +22,18 @@ economy:
   quicksell_tax: 0.0
   global_multiplier: 1.0
 
+leveling:
+  exp_base: 50
+  exp_coeff: 0.09
+  exp_power: 2.3
+
+exp_gain:
+  fish_base: 9
+  fish_per_kg: 0.5
+  chest_base: 22
+  rune_base: 40
+  treasure_base: 80
+
 warps:
   - key: fishing_main
     type: COMMAND
@@ -36,14 +48,22 @@ warps:
     y: 64
     z: -210.5
 
-rare_weight_scaling:
+category_weights:
+  FISH: 9600
+  FISHERMAN_CHEST: 300
+  RUNE: 80
+  TREASURE: 8
+
+category_scaling:
+  FISH:
+    mode: EXP
+    beta: 0.0006
+  FISHERMAN_CHEST:
+    mode: EXP
+    beta: 0.0025
   RUNE:
     mode: EXP
-    beta: 0.007
+    beta: 0.0020
   TREASURE:
     mode: EXP
-    beta: 0.006
-  FISH_PREMIUM:
-    mode: POLY
-    alpha: 0.015
-    k: 0.9
+    beta: 0.0040

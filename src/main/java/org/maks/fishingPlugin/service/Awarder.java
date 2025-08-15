@@ -1,6 +1,11 @@
 package org.maks.fishingPlugin.service;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.ThreadLocalRandom;
+import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
@@ -9,14 +14,12 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.Bukkit;
 import org.maks.fishingPlugin.model.Category;
 import org.maks.fishingPlugin.model.LootEntry;
 import org.maks.fishingPlugin.model.MirrorItem;
 import org.maks.fishingPlugin.service.MirrorItemService;
 import org.maks.fishingPlugin.util.ItemSerialization;
 import org.maks.fishingPlugin.util.WeightedPicker;
-import org.maks.fishingPlugin.FishingPlugin;
 
 /**
  * Grants rolled loot to the player.
@@ -48,19 +51,16 @@ public class Awarder {
    */
   public AwardResult give(Player player, LootEntry loot) {
     ItemStack item = null;
-    boolean broadcast = loot.broadcast();
     MirrorItem mirror = mirrorItems.get(loot.key());
     if (mirror != null) {
       item = ItemSerialization.fromBase64(mirror.itemBase64());
-      broadcast = mirror.broadcast();
     } else if (loot.itemBase64() != null) {
       item = ItemSerialization.fromBase64(loot.itemBase64());
-    } else if (loot.category() == Category.FISH || loot.category() == Category.FISH_PREMIUM) {
-      item = new ItemStack(Material.COD);
+    } else if (loot.category() == Category.FISH) {
+      item = new ItemStack(Material.SALMON);
     }
 
     if (item == null) {
-      player.sendMessage("You obtained: " + loot.key());
       return new AwardResult(0, null);
     }
 
@@ -69,18 +69,24 @@ public class Awarder {
     if (meta != null) {
       PersistentDataContainer pdc = meta.getPersistentDataContainer();
       pdc.set(keyKey, PersistentDataType.STRING, loot.key());
-      if (loot.category() == Category.FISH || loot.category() == Category.FISH_PREMIUM) {
+      if (loot.category() == Category.FISH) {
         weight = ThreadLocalRandom.current().nextDouble(loot.minWeightG(), loot.maxWeightG());
         pdc.set(weightKey, PersistentDataType.DOUBLE, weight);
         org.maks.fishingPlugin.model.Quality quality = pickQuality(loot);
         pdc.set(qualityKey, PersistentDataType.STRING, quality.name());
         meta.setDisplayName(loot.key());
+        List<String> lore = new ArrayList<>();
+        lore.add(ChatColor.GRAY + String.format(Locale.US, "%.1f kg", weight / 1000.0));
+        lore.add(ChatColor.GRAY + "Quality: " + quality.name());
+        meta.setLore(lore);
       }
       item.setItemMeta(meta);
     }
     player.getInventory().addItem(item);
-    if (broadcast) {
-      Bukkit.broadcastMessage(player.getName() + " obtained " + loot.key() + "!");
+    if (loot.category() == Category.RUNE) {
+      Bukkit.broadcastMessage("[FISHING POOL] " + player.getName() + " caught a rune!");
+    } else if (loot.category() == Category.TREASURE) {
+      Bukkit.broadcastMessage("[FISHING POOL] " + player.getName() + " found an oceanic treasure!");
     }
     return new AwardResult(weight, item);
   }

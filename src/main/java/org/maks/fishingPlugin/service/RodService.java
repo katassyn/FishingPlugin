@@ -12,6 +12,7 @@ import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 
 /**
  * Handles creation, detection and updating of the custom fishing rod item.
@@ -54,16 +55,17 @@ public class RodService {
     return rod;
   }
 
-  private String progressLine(long xp, long needed) {
+  private Component progressLine(long xp, long needed) {
     int bars = 10;
     int filled = (int) Math.round((double) xp / needed * bars);
     if (filled > bars) filled = bars;
-    StringBuilder sb = new StringBuilder("[");
+
+    Component.Builder builder = Component.text().append(Component.text("[", NamedTextColor.GRAY));
     for (int i = 0; i < bars; i++) {
-      sb.append(i < filled ? "#" : "-");
+      builder.append(Component.text("█", i < filled ? NamedTextColor.GRAY : NamedTextColor.DARK_GRAY));
     }
-    sb.append("] ").append(xp).append("/").append(needed);
-    return sb.toString();
+    builder.append(Component.text("] " + xp + "/" + needed, NamedTextColor.GRAY));
+    return builder.build();
   }
 
   private void applyEnchants(ItemMeta meta, int level) {
@@ -87,8 +89,9 @@ public class RodService {
     meta.setUnbreakable(true);
     meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ENCHANTS, ItemFlag.HIDE_UNBREAKABLE);
     long needed = levelService.neededExp(level);
-    meta.lore(List.of(Component.text("Level: " + level),
-        Component.text(progressLine(xp, needed))));
+    meta.lore(List.of(
+        Component.text("Level: " + level, NamedTextColor.GRAY),
+        progressLine(xp, needed)));
     applyEnchants(meta, level);
   }
 

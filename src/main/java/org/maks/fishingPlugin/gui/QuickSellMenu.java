@@ -99,8 +99,12 @@ public class QuickSellMenu implements Listener {
     int slot = event.getRawSlot();
     if (slot == 49) {
       double amount = quickSellService.sellSelected(player, sel);
-      player.sendMessage("Sold fish for " + quickSellService.currencySymbol()
-          + String.format("%.2f", amount));
+      if (amount > 0) {
+        player.sendMessage("Sold fish for " + quickSellService.currencySymbol()
+            + String.format("%.2f", amount));
+      } else {
+        player.sendMessage("No fish sold");
+      }
       sel.clear();
       open(player);
       return;

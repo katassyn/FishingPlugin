@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Optional;
 import java.util.UUID;
 import javax.sql.DataSource;
@@ -15,6 +16,25 @@ public class ProfileRepo {
 
   public ProfileRepo(DataSource dataSource) {
     this.dataSource = dataSource;
+  }
+
+  /** Create backing table if it doesn't exist. */
+  public void init() throws SQLException {
+    String sql = "CREATE TABLE IF NOT EXISTS fishing_profile (" +
+        "player_uuid VARCHAR(36) PRIMARY KEY, " +
+        "rod_level INT NOT NULL, " +
+        "rod_xp BIGINT NOT NULL, " +
+        "total_catches BIGINT NOT NULL, " +
+        "total_weight_g BIGINT NOT NULL, " +
+        "largest_catch_g BIGINT NOT NULL, " +
+        "qs_earned BIGINT NOT NULL, " +
+        "last_qte_sample BLOB, " +
+        "created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, " +
+        "updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP" +
+        ")";
+    try (Connection con = dataSource.getConnection(); Statement st = con.createStatement()) {
+      st.executeUpdate(sql);
+    }
   }
 
   public Optional<Profile> find(UUID uuid) throws SQLException {
