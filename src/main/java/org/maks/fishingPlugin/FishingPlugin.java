@@ -32,14 +32,15 @@ import org.maks.fishingPlugin.service.QuestChainService;
 import org.maks.fishingPlugin.service.QuickSellService;
 import org.maks.fishingPlugin.service.MirrorItemService;
 import org.maks.fishingPlugin.service.TeleportService;
+import org.maks.fishingPlugin.service.RodService;
 import org.maks.fishingPlugin.gui.MainMenu;
 import org.maks.fishingPlugin.gui.QuickSellMenu;
 import org.maks.fishingPlugin.gui.ShopMenu;
 import org.maks.fishingPlugin.gui.QuestMenu;
 import org.maks.fishingPlugin.gui.AdminLootEditorMenu;
 import org.maks.fishingPlugin.gui.AdminQuestEditorMenu;
-import org.maks.fishingPlugin.gui.PriceListMenu;
-import org.maks.fishingPlugin.gui.StatsMenu;
+import org.maks.fishingPlugin.command.QuickSellCommand;
+import org.maks.fishingPlugin.command.GiveRodCommand;
 import net.milkbowl.vault.economy.Economy;
 
 public final class FishingPlugin extends JavaPlugin {
@@ -52,6 +53,7 @@ public final class FishingPlugin extends JavaPlugin {
     private AntiCheatService antiCheatService;
     private QuestChainService questService;
     private TeleportService teleportService;
+    private RodService rodService;
     private Economy economy;
     private int requiredPlayerLevel;
     private Database database;
@@ -97,6 +99,8 @@ public final class FishingPlugin extends JavaPlugin {
         this.profileRepo = new ProfileRepo(ds);
         this.levelService = new LevelService(profileRepo, this);
         this.mirrorItemService = new MirrorItemService();
+        this.rodService = new RodService(this, levelService);
+        this.levelService.setRodService(rodService);
 
         Map<String, String> params = new HashMap<>();
         try {
@@ -182,32 +186,22 @@ public final class FishingPlugin extends JavaPlugin {
         var acSec = getConfig().getConfigurationSection("anti_cheat");
         int sampleSize = acSec != null ? acSec.getInt("sample_size", 5) : 5;
         long toleranceMs = acSec != null ? acSec.getLong("tolerance_ms", 30) : 30;
-        String actionStr = acSec != null ? acSec.getString("action", "CANCEL") : "CANCEL";
         double dropMult = acSec != null ? acSec.getDouble("drop_multiplier", 0.5) : 0.5;
 
         this.antiCheatService = new AntiCheatService(sampleSize, toleranceMs);
 
         var qteSec = getConfig().getConfigurationSection("qte");
-        int clicks = qteSec != null ? qteSec.getInt("clicks", 1) : 1;
-        java.util.List<Long> delayRange =
-            qteSec != null ? qteSec.getLongList("start_delay_ms") : java.util.List.of(650L, 1100L);
-        java.util.List<Long> windowRange =
-            qteSec != null ? qteSec.getLongList("window_len_ms") : java.util.List.of(350L, 700L);
-        long startDelayMin = delayRange.size() > 0 ? delayRange.get(0) : 650L;
-        long startDelayMax = delayRange.size() > 1 ? delayRange.get(1) : startDelayMin;
-        long windowMin = windowRange.size() > 0 ? windowRange.get(0) : 350L;
-        long windowMax = windowRange.size() > 1 ? windowRange.get(1) : windowMin;
-        QteService.MacroAction macroAction = QteService.MacroAction.valueOf(actionStr.toUpperCase());
+        double chance = qteSec != null ? qteSec.getDouble("chance", 0.25) : 0.25;
+        long duration = qteSec != null ? qteSec.getLong("duration_ms", 1000L) : 1000L;
 
-        this.qteService = new QteService(this, antiCheatService, clicks, startDelayMin, startDelayMax,
-            windowMin, windowMax, macroAction);
+        this.qteService = new QteService(chance, duration);
         this.teleportService = new TeleportService(this);
         this.questService = new QuestChainService(economy, questRepo, questProgressRepo, this);
         if (pm.getPlugin("PlaceholderAPI") != null) {
             new org.maks.fishingPlugin.integration.FishingExpansion(this).register();
         }
 
-        Bukkit.getPluginManager().registerEvents(new ProfileListener(levelService, antiCheatService), this);
+        Bukkit.getPluginManager().registerEvents(new ProfileListener(levelService, antiCheatService, rodService), this);
         Bukkit.getPluginManager().registerEvents(
             new FishingListener(lootService, awarder, levelService, qteService, questService, requiredPlayerLevel,
                 antiCheatService, dropMult), this);
@@ -220,14 +214,13 @@ public final class FishingPlugin extends JavaPlugin {
         QuickSellMenu quickSellMenu = new QuickSellMenu(quickSellService);
         ShopMenu shopMenu = new ShopMenu(this, requiredPlayerLevel);
         QuestMenu questMenu = new QuestMenu(questService);
-        PriceListMenu priceListMenu = new PriceListMenu(lootService, quickSellService);
-        StatsMenu statsMenu = new StatsMenu(levelService, lootService);
         AdminQuestEditorMenu adminQuestMenu = new AdminQuestEditorMenu(this, questService, questRepo);
         AdminLootEditorMenu adminMenu = new AdminLootEditorMenu(this, lootService, lootRepo, paramRepo,
             quickSellService, adminQuestMenu, mirrorItemRepo, mirrorItemService);
-        MainMenu mainMenu = new MainMenu(quickSellMenu, shopMenu, questMenu, priceListMenu, statsMenu,
-            teleportService, requiredPlayerLevel);
+        MainMenu mainMenu = new MainMenu(shopMenu, teleportService, requiredPlayerLevel);
         getCommand("fishing").setExecutor(new FishingCommand(mainMenu, adminMenu, requiredPlayerLevel));
+        getCommand("fishsell").setExecutor(new QuickSellCommand(quickSellMenu));
+        getCommand("fishingrod").setExecutor(new GiveRodCommand(rodService));
 
         Bukkit.getPluginManager().registerEvents(mainMenu, this);
         Bukkit.getPluginManager().registerEvents(quickSellMenu, this);

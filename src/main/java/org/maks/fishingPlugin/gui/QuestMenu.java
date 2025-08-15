@@ -27,7 +27,16 @@ public class QuestMenu implements Listener {
   }
 
   private Inventory createInventory(Player player) {
-    Inventory inv = Bukkit.createInventory(new Holder(), 27, "Quests");
+    Inventory inv = Bukkit.createInventory(new Holder(), 54, "Quests");
+    ItemStack filler = new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
+    ItemMeta fm = filler.getItemMeta();
+    if (fm != null) {
+      fm.displayName(Component.text(" "));
+      filler.setItemMeta(fm);
+    }
+    for (int i = 0; i < 54; i++) {
+      inv.setItem(i, filler);
+    }
     if (questService.isCompleted(player)) {
       ItemStack done = new ItemStack(Material.BOOK);
       ItemMeta meta = done.getItemMeta();
@@ -35,48 +44,55 @@ public class QuestMenu implements Listener {
         meta.displayName(Component.text("All quests completed"));
         done.setItemMeta(meta);
       }
-      inv.setItem(13, done);
+      inv.setItem(22, done);
       return inv;
     }
-    QuestProgress p = questService.getProgress(player);
-    QuestStage stage = questService.getCurrentStage(p.stage());
-    ItemStack info = new ItemStack(Material.PAPER);
-    ItemMeta meta = info.getItemMeta();
-    if (meta != null) {
-      meta.displayName(Component.text(stage.title()));
-      java.util.List<Component> lore = new java.util.ArrayList<>();
-      if (!stage.lore().isEmpty()) {
-        lore.add(Component.text(stage.lore()));
+    QuestProgress prog = questService.getProgress(player);
+    java.util.List<QuestStage> stages = questService.getStages();
+    for (int i = 0; i < stages.size() && i < 54; i++) {
+      QuestStage stage = stages.get(i);
+      ItemStack item;
+      ItemMeta meta;
+      if (i < prog.stage()) {
+        item = new ItemStack(Material.LIME_STAINED_GLASS_PANE);
+        meta = item.getItemMeta();
+        if (meta != null) {
+          meta.displayName(Component.text(stage.title()));
+          meta.lore(java.util.List.of(Component.text("Completed")));
+          item.setItemMeta(meta);
+        }
+      } else if (i == prog.stage()) {
+        boolean ready = prog.count() >= stage.goal();
+        item = new ItemStack(ready ? Material.GOLD_INGOT : Material.PAPER);
+        meta = item.getItemMeta();
+        if (meta != null) {
+          meta.displayName(Component.text(stage.title()));
+          java.util.List<Component> lore = new java.util.ArrayList<>();
+          if (!stage.lore().isEmpty()) {
+            lore.add(Component.text(stage.lore()));
+          }
+          lore.add(Component.text("Progress: " + prog.count() + "/" + stage.goal()));
+          switch (stage.rewardType()) {
+            case MONEY -> lore.add(Component.text("Reward: $" +
+                String.format("%.0f", stage.reward())));
+            case COMMAND -> lore.add(Component.text("Reward: /" + stage.rewardData()));
+            case ITEM -> lore.add(Component.text("Reward: Item"));
+          }
+          if (ready) {
+            lore.add(Component.text("Click to claim"));
+          }
+          meta.lore(lore);
+          item.setItemMeta(meta);
+        }
+      } else {
+        item = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
+        meta = item.getItemMeta();
+        if (meta != null) {
+          meta.displayName(Component.text("Locked"));
+          item.setItemMeta(meta);
+        }
       }
-      lore.add(Component.text("Progress: " + p.count() + "/" + stage.goal()));
-      switch (stage.rewardType()) {
-        case MONEY -> lore.add(
-            Component.text("Reward: $" + String.format("%.0f", stage.reward())));
-        case COMMAND -> lore.add(
-            Component.text("Reward: /" + stage.rewardData()));
-        case ITEM -> lore.add(Component.text("Reward: Item"));
-      }
-      meta.lore(lore);
-      info.setItemMeta(meta);
-    }
-    inv.setItem(12, info);
-
-    if (p.count() >= stage.goal()) {
-      ItemStack claim = new ItemStack(Material.GOLD_INGOT);
-      ItemMeta cm = claim.getItemMeta();
-      if (cm != null) {
-        cm.displayName(Component.text("Claim Reward"));
-        claim.setItemMeta(cm);
-      }
-      inv.setItem(14, claim);
-    } else {
-      ItemStack keep = new ItemStack(Material.FISHING_ROD);
-      ItemMeta km = keep.getItemMeta();
-      if (km != null) {
-        km.displayName(Component.text("Keep fishing..."));
-        keep.setItemMeta(km);
-      }
-      inv.setItem(14, keep);
+      inv.setItem(i, item);
     }
     return inv;
   }
@@ -93,13 +109,15 @@ public class QuestMenu implements Listener {
     }
     event.setCancelled(true);
     Player player = (Player) event.getWhoClicked();
-    if (event.getRawSlot() == 14) {
-      if (!questService.isCompleted(player)) {
-        QuestProgress p = questService.getProgress(player);
-        QuestStage stage = questService.getCurrentStage(p.stage());
-        if (p.count() >= stage.goal()) {
-          questService.claim(player);
-        }
+    if (questService.isCompleted(player)) {
+      return;
+    }
+    QuestProgress prog = questService.getProgress(player);
+    int slot = event.getRawSlot();
+    if (slot == prog.stage() && slot < questService.getStages().size()) {
+      QuestStage stage = questService.getStages().get(slot);
+      if (prog.count() >= stage.goal()) {
+        questService.claim(player);
       }
       open(player);
     }

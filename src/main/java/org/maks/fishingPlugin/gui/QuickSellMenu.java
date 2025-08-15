@@ -64,10 +64,21 @@ public class QuickSellMenu implements Listener {
       String gk = QuickSellService.groupKey(e.key(), e.quality());
       boolean selected = sel.contains(gk);
       ItemStack item = entryItem(e, selected);
-      inv.setItem(slot++, item);
+      if (slot < 45) {
+        inv.setItem(slot, item);
+      }
+      slot++;
     }
-    inv.setItem(52, button(Material.GOLD_INGOT, "Sell Selected"));
-    inv.setItem(53, button(Material.REDSTONE_BLOCK, "Sell All"));
+    ItemStack filler = new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
+    ItemMeta fMeta = filler.getItemMeta();
+    if (fMeta != null) {
+      fMeta.displayName(Component.text(" "));
+      filler.setItemMeta(fMeta);
+    }
+    for (int i = 45; i < 54; i++) {
+      inv.setItem(i, filler);
+    }
+    inv.setItem(49, button(Material.EMERALD, "Sell"));
     return inv;
   }
 
@@ -86,7 +97,7 @@ public class QuickSellMenu implements Listener {
     Set<String> sel = selections.computeIfAbsent(player.getUniqueId(), k -> new HashSet<>());
 
     int slot = event.getRawSlot();
-    if (slot == 52) {
+    if (slot == 49) {
       double amount = quickSellService.sellSelected(player, sel);
       player.sendMessage("Sold fish for " + quickSellService.currencySymbol()
           + String.format("%.2f", amount));
@@ -94,15 +105,7 @@ public class QuickSellMenu implements Listener {
       open(player);
       return;
     }
-    if (slot == 53) {
-      double amount = quickSellService.sellAll(player);
-      player.sendMessage("Sold fish for " + quickSellService.currencySymbol()
-          + String.format("%.2f", amount));
-      sel.clear();
-      open(player);
-      return;
-    }
-    if (slot >= 0 && slot < holder.summary.entries().size()) {
+    if (slot >= 0 && slot < holder.summary.entries().size() && slot < 45) {
       SellSummary.Entry e = holder.summary.entries().get(slot);
       String gk = QuickSellService.groupKey(e.key(), e.quality());
       if (sel.contains(gk)) {

@@ -12,6 +12,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
@@ -33,6 +34,8 @@ public class AdminQuestEditorMenu implements Listener {
 
   /** Pending chat editors mapped by player. */
   private final Map<UUID, Consumer<String>> editors = new HashMap<>();
+  /** Reward item editors by player. */
+  private final Map<UUID, QuestStage> itemEditors = new HashMap<>();
 
   public AdminQuestEditorMenu(JavaPlugin plugin, QuestChainService questService, QuestRepo questRepo) {
     this.plugin = plugin;
@@ -90,6 +93,28 @@ public class AdminQuestEditorMenu implements Listener {
     }
   }
 
+  private void openItemEditor(Player player, QuestStage stage) {
+    Inventory inv = Bukkit.createInventory(new ItemEditorHolder(), 27,
+        "Reward for stage " + stage.stage());
+    ItemStack filler = new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
+    ItemMeta fm = filler.getItemMeta();
+    if (fm != null) {
+      fm.displayName(Component.text(" "));
+      filler.setItemMeta(fm);
+    }
+    for (int i = 0; i < 27; i++) {
+      inv.setItem(i, filler);
+    }
+    if (stage.rewardType() == QuestStage.RewardType.ITEM && !stage.rewardData().isEmpty()) {
+      try {
+        inv.setItem(13, ItemSerialization.fromBase64(stage.rewardData()));
+      } catch (Exception ignored) {
+      }
+    }
+    itemEditors.put(player.getUniqueId(), stage);
+    player.openInventory(inv);
+  }
+
   @EventHandler
   public void onClick(InventoryClickEvent event) {
     if (!(event.getInventory().getHolder() instanceof Holder holder)) {
@@ -129,17 +154,7 @@ public class AdminQuestEditorMenu implements Listener {
           player.closeInventory();
           player.sendMessage("Type command in chat (without /)");
         } else if (stage.rewardType() == QuestStage.RewardType.ITEM) {
-          ItemStack cursor = event.getCursor();
-          if (cursor != null && !cursor.getType().isAir()) {
-            String data = ItemSerialization.toBase64(cursor);
-            QuestStage updated = new QuestStage(stage.stage(), stage.title(), stage.lore(),
-                stage.goalType(), stage.goal(), stage.rewardType(), stage.reward(), data);
-            player.setItemOnCursor(null);
-            save(updated, player);
-          } else {
-            player.sendMessage("Put an item on cursor to set reward");
-          }
-          player.openInventory(createInventory());
+          openItemEditor(player, stage);
         }
       }
       case MIDDLE -> {
@@ -197,11 +212,39 @@ public class AdminQuestEditorMenu implements Listener {
     });
   }
 
+  @EventHandler
+  public void onClose(InventoryCloseEvent event) {
+    if (!(event.getInventory().getHolder() instanceof ItemEditorHolder)) {
+      return;
+    }
+    Player player = (Player) event.getPlayer();
+    QuestStage stage = itemEditors.remove(player.getUniqueId());
+    if (stage == null) {
+      return;
+    }
+    ItemStack item = event.getInventory().getItem(13);
+    String data = "";
+    if (item != null && !item.getType().isAir()) {
+      data = ItemSerialization.toBase64(item);
+    }
+    QuestStage updated = new QuestStage(stage.stage(), stage.title(), stage.lore(),
+        stage.goalType(), stage.goal(), QuestStage.RewardType.ITEM, stage.reward(), data);
+    save(updated, player);
+    Bukkit.getScheduler().runTask(plugin, () -> open(player));
+  }
+
   private static class Holder implements InventoryHolder {
     final Map<Integer, QuestStage> map;
     Holder(Map<Integer, QuestStage> map) {
       this.map = map;
     }
+    @Override
+    public Inventory getInventory() {
+      return null;
+    }
+  }
+
+  private static class ItemEditorHolder implements InventoryHolder {
     @Override
     public Inventory getInventory() {
       return null;

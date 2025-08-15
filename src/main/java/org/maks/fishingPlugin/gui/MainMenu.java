@@ -11,6 +11,7 @@ import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import net.kyori.adventure.text.Component;
+import org.bukkit.ChatColor;
 import org.maks.fishingPlugin.service.TeleportService;
 
 /**
@@ -18,22 +19,12 @@ import org.maks.fishingPlugin.service.TeleportService;
  */
 public class MainMenu implements Listener {
 
-  private final QuickSellMenu quickSellMenu;
   private final ShopMenu shopMenu;
-  private final QuestMenu questMenu;
-  private final PriceListMenu priceListMenu;
-  private final StatsMenu statsMenu;
   private final TeleportService teleportService;
   private final int requiredLevel;
 
-  public MainMenu(QuickSellMenu quickSellMenu, ShopMenu shopMenu, QuestMenu questMenu,
-      PriceListMenu priceListMenu, StatsMenu statsMenu, TeleportService teleportService,
-      int requiredLevel) {
-    this.quickSellMenu = quickSellMenu;
+  public MainMenu(ShopMenu shopMenu, TeleportService teleportService, int requiredLevel) {
     this.shopMenu = shopMenu;
-    this.questMenu = questMenu;
-    this.priceListMenu = priceListMenu;
-    this.statsMenu = statsMenu;
     this.teleportService = teleportService;
     this.requiredLevel = requiredLevel;
   }
@@ -48,21 +39,31 @@ public class MainMenu implements Listener {
     return item;
   }
 
+  private ItemStack filler() {
+    ItemStack item = new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
+    ItemMeta meta = item.getItemMeta();
+    if (meta != null) {
+      meta.displayName(Component.text(" "));
+      item.setItemMeta(meta);
+    }
+    return item;
+  }
+
   private Inventory createInventory() {
     Inventory inv = Bukkit.createInventory(new Holder(), 27, "Fishing Menu");
-    inv.setItem(10, button(Material.CHEST, "Quick Sell"));
+    ItemStack fill = filler();
+    for (int i = 0; i < 27; i++) {
+      inv.setItem(i, fill);
+    }
     inv.setItem(11, button(Material.EMERALD, "Shop"));
-    inv.setItem(12, button(Material.BOOK, "Quests"));
-    inv.setItem(13, button(Material.PAPER, "Price List"));
-    inv.setItem(14, button(Material.OAK_SIGN, "Stats"));
-    inv.setItem(16, button(Material.ENDER_PEARL, "Teleport"));
+    inv.setItem(15, button(Material.ENDER_PEARL, "Teleport to fishing pool"));
     return inv;
   }
 
   /** Open the main menu if the player meets the level requirement. */
   public void open(Player player) {
     if (player.getLevel() < requiredLevel) {
-      player.sendMessage("You need level " + requiredLevel + " to use fishing features.");
+      player.sendMessage(ChatColor.RED + "You must be at least level " + requiredLevel + "!");
       return;
     }
     player.openInventory(createInventory());
@@ -76,14 +77,10 @@ public class MainMenu implements Listener {
     event.setCancelled(true);
     Player player = (Player) event.getWhoClicked();
     switch (event.getRawSlot()) {
-      case 10 -> quickSellMenu.open(player);
       case 11 -> shopMenu.open(player);
-      case 12 -> questMenu.open(player);
-      case 13 -> priceListMenu.open(player);
-      case 14 -> statsMenu.open(player);
-      case 16 -> {
+      case 15 -> {
         if (player.getLevel() < requiredLevel) {
-          player.sendMessage("You need level " + requiredLevel + " to teleport.");
+          player.sendMessage(ChatColor.RED + "You must be at least level " + requiredLevel + "!");
         } else {
           teleportService.teleport("fishing_main", player);
         }

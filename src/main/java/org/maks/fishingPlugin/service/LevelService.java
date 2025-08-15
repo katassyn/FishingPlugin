@@ -10,6 +10,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.maks.fishingPlugin.data.Profile;
 import org.maks.fishingPlugin.data.ProfileRepo;
+import org.maks.fishingPlugin.service.RodService;
 
 /**
  * Handles rod experience calculations and persistence.
@@ -19,10 +20,19 @@ public class LevelService {
   private final ProfileRepo profileRepo;
   private final Logger logger;
   private final Map<UUID, Profile> profiles = new HashMap<>();
+  private RodService rodService;
 
   public LevelService(ProfileRepo profileRepo, JavaPlugin plugin) {
     this.profileRepo = profileRepo;
     this.logger = plugin.getLogger();
+  }
+
+  /**
+   * Set the rod service used for updating item metadata. Called after
+   * both services are constructed to avoid circular dependency.
+   */
+  public void setRodService(RodService rodService) {
+    this.rodService = rodService;
   }
 
   /**
@@ -131,6 +141,9 @@ public class LevelService {
     long totalWeight = prof.totalWeightG() + weightG;
     long largest = Math.max(prof.largestCatchG(), weightG);
     set(p, level, xp, totalCatches, totalWeight, largest);
+    if (rodService != null) {
+      rodService.updatePlayerRod(p, level, xp);
+    }
     return level;
   }
 
