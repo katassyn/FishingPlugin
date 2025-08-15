@@ -131,4 +131,13 @@ public class LevelService {
   public long getLargestCatchG(Player p) {
     return profile(p).largestCatchG();
   }
+
+  /** Increase the quick sell earnings counter for the player. */
+  public void addQsEarned(Player p, long amount) {
+    Profile old = profile(p);
+    profiles.put(p.getUniqueId(),
+        new Profile(p.getUniqueId(), old.rodLevel(), old.rodXp(), old.totalCatches(),
+            old.totalWeightG(), old.largestCatchG(), old.qsEarned() + amount,
+            old.lastQteSample(), old.createdAt(), Instant.now()));
+  }
 }

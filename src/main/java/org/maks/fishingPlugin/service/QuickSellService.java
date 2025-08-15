@@ -18,6 +18,7 @@ public class QuickSellService {
 
   private final LootService lootService;
   private final Economy economy;
+  private final LevelService levelService;
   private final NamespacedKey keyKey;
   private final NamespacedKey weightKey;
   private final NamespacedKey qualityKey;
@@ -26,9 +27,10 @@ public class QuickSellService {
   private String currencySymbol;
 
   public QuickSellService(JavaPlugin plugin, LootService lootService, Economy economy,
-      double globalMultiplier, double tax, String currencySymbol) {
+      LevelService levelService, double globalMultiplier, double tax, String currencySymbol) {
     this.lootService = lootService;
     this.economy = economy;
+    this.levelService = levelService;
     this.globalMultiplier = globalMultiplier;
     this.tax = tax;
     this.currencySymbol = currencySymbol;
@@ -78,6 +80,7 @@ public class QuickSellService {
     if (total > 0) {
       double payout = total * (1.0 - tax);
       economy.depositPlayer(player, payout);
+      levelService.addQsEarned(player, Math.round(payout));
       return payout;
     }
     return 0;

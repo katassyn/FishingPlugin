@@ -173,7 +173,7 @@ public final class FishingPlugin extends JavaPlugin {
         multiplier = Double.parseDouble(params.getOrDefault("global_multiplier", String.valueOf(multiplier)));
         tax = Double.parseDouble(params.getOrDefault("quicksell_tax", String.valueOf(tax)));
         symbol = params.getOrDefault("currency_symbol", symbol);
-        this.quickSellService = new QuickSellService(this, lootService, economy, multiplier, tax, symbol);
+        this.quickSellService = new QuickSellService(this, lootService, economy, levelService, multiplier, tax, symbol);
 
         var acSec = getConfig().getConfigurationSection("anti_cheat");
         int sampleSize = acSec != null ? acSec.getInt("sample_size", 5) : 5;
