@@ -294,7 +294,8 @@ public class AdminLootEditorMenu implements Listener {
 
   private Inventory scalingInv() {
     Map<Integer, Category> map = new HashMap<>();
-    Inventory inv = Bukkit.createInventory(new Holder(Type.SCALING, map), 54, "Scaling");
+    Inventory inv =
+        Bukkit.createInventory(new Holder(Type.SCALING, new HashMap<>(), map), 54, "Scaling");
 
     Map<Integer, Map<Category, Double>> levelWeights = new HashMap<>();
     Map<Integer, Double> levelTotals = new HashMap<>();
@@ -847,16 +848,16 @@ public class AdminLootEditorMenu implements Listener {
     final Map<Integer, Category> scaleMap;
     final LootEntry entry;
     Holder(Type type) {
-      this(type, null, new HashMap<>(), new EnumMap<>(Category.class));
+      this(type, null, new HashMap<>(), new HashMap<>());
     }
     Holder(Type type, Map<Integer, LootEntry> weightMap) {
-      this(type, null, weightMap, new EnumMap<>(Category.class));
+      this(type, null, weightMap, new HashMap<>());
     }
     Holder(Type type, Map<Integer, LootEntry> weightMap, Map<Integer, Category> scaleMap) {
       this(type, null, weightMap, scaleMap);
     }
     Holder(Type type, LootEntry entry) {
-      this(type, entry, new HashMap<>(), new EnumMap<>(Category.class));
+      this(type, entry, new HashMap<>(), new HashMap<>());
     }
     Holder(Type type, LootEntry entry, Map<Integer, LootEntry> weightMap,
         Map<Integer, Category> scaleMap) {
