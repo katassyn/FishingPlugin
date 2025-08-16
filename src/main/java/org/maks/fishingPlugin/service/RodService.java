@@ -13,6 +13,7 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.TextComponent;
 
 /**
@@ -89,12 +90,25 @@ public class RodService {
     int filled = (int) Math.round((double) xp / needed * bars);
     if (filled > bars) filled = bars;
 
-    TextComponent.Builder builder = Component.text().append(Component.text("[", NamedTextColor.GRAY));
-    for (int i = 0; i < bars; i++) {
-      builder.append(Component.text("█", i < filled ? NamedTextColor.GRAY : NamedTextColor.DARK_GRAY));
+    TextColor start = TextColor.color(0xFFFF55); // yellow
+    TextColor end = TextColor.color(0x55FF55);   // green
 
+    TextComponent.Builder builder = Component.text()
+        .append(Component.text("[", NamedTextColor.GRAY));
+
+    for (int i = 0; i < bars; i++) {
+      if (i < filled) {
+        float t = filled <= 1 ? 0 : (float) i / (filled - 1);
+        TextColor color = TextColor.lerp(t, start, end);
+        builder.append(Component.text("█", color));
+      } else {
+        builder.append(Component.text("█", NamedTextColor.GRAY));
+      }
     }
-    builder.append(Component.text("] " + xp + "/" + needed, NamedTextColor.GRAY));
+
+    builder.append(Component.text("] ", NamedTextColor.GRAY))
+        .append(Component.text(String.valueOf(xp), NamedTextColor.YELLOW))
+        .append(Component.text("/" + needed, NamedTextColor.GREEN));
     return builder.build();
   }
 
