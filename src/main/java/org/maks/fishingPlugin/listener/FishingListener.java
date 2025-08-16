@@ -56,6 +56,12 @@ public class FishingListener implements Listener {
   @EventHandler
   public void onFish(PlayerFishEvent event) {
     Player player = event.getPlayer();
+    ItemStack rod = player.getInventory().getItemInMainHand();
+    if (rodService.isRod(rod) && !rodService.isOwner(rod, player)) {
+      event.setCancelled(true);
+      player.sendMessage("This rod is not yours.");
+      return;
+    }
     if (event.getState() == PlayerFishEvent.State.FISHING) {
       if (player.getLevel() < requiredLevel) {
         event.setCancelled(true);

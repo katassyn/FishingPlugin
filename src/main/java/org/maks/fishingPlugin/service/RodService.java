@@ -24,6 +24,8 @@ public class RodService {
   private final NamespacedKey levelKey;
   private final NamespacedKey xpKey;
   private final NamespacedKey adminKey;
+  private final NamespacedKey ownerKey;
+  private final NamespacedKey ownerNameKey;
   private final LevelService levelService;
 
   public RodService(JavaPlugin plugin, LevelService levelService) {
@@ -32,6 +34,8 @@ public class RodService {
     this.levelKey = new NamespacedKey(plugin, "rod-level");
     this.xpKey = new NamespacedKey(plugin, "rod-xp");
     this.adminKey = new NamespacedKey(plugin, "admin-rod");
+    this.ownerKey = new NamespacedKey(plugin, "rod-owner");
+    this.ownerNameKey = new NamespacedKey(plugin, "rod-owner-name");
   }
 
   private PersistentDataContainer container(ItemMeta meta) {
@@ -53,21 +57,24 @@ public class RodService {
     return meta != null && container(meta).has(adminKey, PersistentDataType.BYTE);
   }
 
-  /** Create a new fishing rod item with the given stats. */
-  public ItemStack createRod(int level, long xp) {
+  /** Create a new fishing rod item with the given stats and owner. */
+  public ItemStack createRod(Player owner, int level, long xp) {
     ItemStack rod = new ItemStack(Material.FISHING_ROD);
     ItemMeta meta = rod.getItemMeta();
     if (meta != null) {
       container(meta).set(rodKey, PersistentDataType.BYTE, (byte) 1);
-      updateMeta(meta, level, xp);
+      container(meta).set(ownerKey, PersistentDataType.STRING,
+          owner.getUniqueId().toString());
+      container(meta).set(ownerNameKey, PersistentDataType.STRING, owner.getName());
+      updateMeta(meta, level, xp, owner.getName());
       rod.setItemMeta(meta);
     }
     return rod;
   }
 
   /** Create an admin rod starting at level 300 that bypasses drop requirements. */
-  public ItemStack createAdminRod() {
-    ItemStack rod = createRod(300, 0);
+  public ItemStack createAdminRod(Player owner) {
+    ItemStack rod = createRod(owner, 300, 0);
     ItemMeta meta = rod.getItemMeta();
     if (meta != null) {
       container(meta).set(adminKey, PersistentDataType.BYTE, (byte) 1);
@@ -105,7 +112,7 @@ public class RodService {
     }
   }
 
-  private void updateMeta(ItemMeta meta, int level, long xp) {
+  private void updateMeta(ItemMeta meta, int level, long xp, String ownerName) {
     container(meta).set(levelKey, PersistentDataType.INTEGER, level);
     container(meta).set(xpKey, PersistentDataType.LONG, xp);
     meta.displayName(Component.text("Fishing Rod"));
@@ -113,6 +120,7 @@ public class RodService {
     meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ENCHANTS, ItemFlag.HIDE_UNBREAKABLE);
     long needed = levelService.neededExp(level);
     meta.lore(List.of(
+        Component.text("Owner: " + ownerName, NamedTextColor.GRAY),
         Component.text("Level: " + level, NamedTextColor.GRAY),
         progressLine(xp, needed)));
 
@@ -127,7 +135,15 @@ public class RodService {
       if (isRod(item)) {
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-          updateMeta(meta, level, xp);
+          String ownerName = container(meta).get(ownerNameKey, PersistentDataType.STRING);
+          String ownerUuid = container(meta).get(ownerKey, PersistentDataType.STRING);
+          if (ownerName == null || ownerUuid == null) {
+            ownerName = player.getName();
+            ownerUuid = player.getUniqueId().toString();
+            container(meta).set(ownerNameKey, PersistentDataType.STRING, ownerName);
+            container(meta).set(ownerKey, PersistentDataType.STRING, ownerUuid);
+          }
+          updateMeta(meta, level, xp, ownerName);
           item.setItemMeta(meta);
           inv.setItem(i, item);
         }
@@ -138,11 +154,20 @@ public class RodService {
 
   /** Give a fresh rod to the player. */
   public void giveRod(Player player) {
-    player.getInventory().addItem(createRod(1, 0));
+    player.getInventory().addItem(createRod(player, 1, 0));
   }
 
   /** Give the admin rod to the player. */
   public void giveAdminRod(Player player) {
-    player.getInventory().addItem(createAdminRod());
+    player.getInventory().addItem(createAdminRod(player));
+  }
+
+  /** Check if the given player is the owner of the rod item. */
+  public boolean isOwner(ItemStack item, Player player) {
+    if (!isRod(item)) return false;
+    ItemMeta meta = item.getItemMeta();
+    if (meta == null) return false;
+    String owner = container(meta).get(ownerKey, PersistentDataType.STRING);
+    return owner != null && owner.equals(player.getUniqueId().toString());
   }
 }
