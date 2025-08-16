@@ -1,9 +1,11 @@
 package org.maks.fishingPlugin.listener;
 
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerFishEvent;
+import org.maks.fishingPlugin.api.FishRewardEvent;
 import org.maks.fishingPlugin.model.LootEntry;
 import org.maks.fishingPlugin.service.Awarder;
 import org.maks.fishingPlugin.service.LevelService;
@@ -98,6 +100,8 @@ public class FishingListener implements Listener {
       double kg = res.weightG() / 1000.0;
       levelService.awardCatchExp(player, loot.category(), kg);
       questService.onCatch(player, loot, res.weightG(), res.item());
+      Bukkit.getPluginManager().callEvent(
+          new FishRewardEvent(player, loot, res.item(), res.weightG()));
       maybeGiveCraft(player);
     }
   }
