@@ -20,7 +20,21 @@ public record QuestStage(
   /** Types of goals that a quest stage can have. */
   public enum GoalType {
     /** Catch a certain number of fish. */
-    CATCH
+    CATCH,
+    /** Earn money from quick selling. */
+    SELL,
+    /** Accumulate total catch weight in grams. */
+    WEIGHT,
+    /** Catch Fisherman's Chests. */
+    CHEST,
+    /** Find treasure maps. */
+    MAP,
+    /** Collect runes. */
+    RUNE,
+    /** Find ocean treasures. */
+    TREASURE,
+    /** Catch rare pufferfish. */
+    RARE_PUFFERFISH
   }
 
   /** Types of rewards that can be granted for a quest stage. */

@@ -97,7 +97,7 @@ public class FishingListener implements Listener {
     if (res.item() != null) {
       double kg = res.weightG() / 1000.0;
       levelService.awardCatchExp(player, loot.category(), kg);
-      questService.onCatch(player);
+      questService.onCatch(player, loot, res.weightG(), res.item());
       maybeGiveCraft(player);
     }
   }

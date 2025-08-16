@@ -12,12 +12,16 @@ import java.util.UUID;
 import java.util.logging.Logger;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
+import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.maks.fishingPlugin.data.QuestProgressRepo;
 import org.maks.fishingPlugin.data.QuestRepo;
+import org.maks.fishingPlugin.model.Category;
+import org.maks.fishingPlugin.model.LootEntry;
 import org.maks.fishingPlugin.model.QuestProgress;
 import org.maks.fishingPlugin.model.QuestStage;
 import org.maks.fishingPlugin.util.ItemSerialization;
@@ -33,6 +37,7 @@ public class QuestChainService {
   private final Logger logger;
   private final List<QuestStage> stages = new ArrayList<>();
   private final Map<UUID, QuestProgress> progress = new HashMap<>();
+  private final NamespacedKey qualityKey;
 
   public QuestChainService(Economy economy, QuestRepo questRepo,
       QuestProgressRepo progressRepo, JavaPlugin plugin) {
@@ -40,13 +45,14 @@ public class QuestChainService {
     this.questRepo = questRepo;
     this.progressRepo = progressRepo;
     this.logger = plugin.getLogger();
+    this.qualityKey = new NamespacedKey(plugin, "quality");
     loadDefinitions(plugin);
   }
 
   private void loadDefinitions(JavaPlugin plugin) {
     try {
       List<QuestStage> fromDb = questRepo.findAll();
-      if (fromDb.size() == 21) {
+      if (fromDb.size() == 42) {
         stages.addAll(fromDb);
         return;
       }
@@ -133,15 +139,93 @@ public class QuestChainService {
     }
   }
 
-  /** Call when a player catches a fish. */
-  public void onCatch(Player player) {
+  /** Call when a player catches something. */
+  public void onCatch(Player player, LootEntry loot,
+      double weightG, ItemStack item) {
     QuestProgress p = loadProgress(player.getUniqueId());
     if (p.stage() >= stages.size()) {
       return; // all done
     }
     QuestStage stage = stages.get(p.stage());
-    if (stage.goalType() == QuestStage.GoalType.CATCH) {
-      p = new QuestProgress(p.playerUuid(), p.stage(), p.count() + 1);
+    boolean progressed = false;
+    switch (stage.goalType()) {
+      case CATCH -> {
+        if (loot.category() == Category.FISH) {
+          p = new QuestProgress(p.playerUuid(), p.stage(), p.count() + 1);
+          progressed = true;
+        }
+      }
+      case WEIGHT -> {
+        if (loot.category() == Category.FISH) {
+          int add = (int) Math.round(weightG);
+          p = new QuestProgress(p.playerUuid(), p.stage(), p.count() + add);
+          progressed = true;
+        }
+      }
+      case CHEST -> {
+        if (loot.category() == Category.FISHERMAN_CHEST) {
+          p = new QuestProgress(p.playerUuid(), p.stage(), p.count() + 1);
+          progressed = true;
+        }
+      }
+      case MAP -> {
+        if (loot.category() == Category.TREASURE_MAP) {
+          p = new QuestProgress(p.playerUuid(), p.stage(), p.count() + 1);
+          progressed = true;
+        }
+      }
+      case RUNE -> {
+        if (loot.category() == Category.RUNE) {
+          p = new QuestProgress(p.playerUuid(), p.stage(), p.count() + 1);
+          progressed = true;
+        }
+      }
+      case TREASURE -> {
+        if (loot.category() == Category.TREASURE) {
+          p = new QuestProgress(p.playerUuid(), p.stage(), p.count() + 1);
+          progressed = true;
+        }
+      }
+      case RARE_PUFFERFISH -> {
+        if (loot.category() == Category.FISH && loot.key().toLowerCase().contains("puffer")) {
+          String qual = "";
+          if (item != null && item.getItemMeta() != null) {
+            var pdc = item.getItemMeta().getPersistentDataContainer();
+            String q = pdc.get(qualityKey, PersistentDataType.STRING);
+            if (q != null) {
+              qual = q;
+            }
+          }
+          if ("S".equalsIgnoreCase(qual)) {
+            p = new QuestProgress(p.playerUuid(), p.stage(), p.count() + 1);
+            progressed = true;
+          }
+        }
+      }
+      default -> {
+        // ignore other goal types
+      }
+    }
+    if (progressed) {
+      progress.put(player.getUniqueId(), p);
+      saveProgress(p);
+      if (p.count() >= stage.goal()) {
+        player.sendMessage(
+            "Quest stage " + stage.stage() + " complete! Open the quest menu to claim reward.");
+      }
+    }
+  }
+
+  /** Call when a player earns money from quick selling. */
+  public void onQuickSell(Player player, double amount) {
+    QuestProgress p = loadProgress(player.getUniqueId());
+    if (p.stage() >= stages.size()) {
+      return;
+    }
+    QuestStage stage = stages.get(p.stage());
+    if (stage.goalType() == QuestStage.GoalType.SELL) {
+      int add = (int) Math.round(amount);
+      p = new QuestProgress(p.playerUuid(), p.stage(), p.count() + add);
       progress.put(player.getUniqueId(), p);
       saveProgress(p);
       if (p.count() >= stage.goal()) {
@@ -171,9 +255,18 @@ public class QuestChainService {
     }
     QuestStage stage = stages.get(p.stage());
     if (p.count() < stage.goal()) {
-      player.sendMessage(
-          "Catch " + (stage.goal() - p.count()) + " more fish to finish quest stage "
-              + stage.stage());
+      int remaining = stage.goal() - p.count();
+      String msg = switch (stage.goalType()) {
+        case CATCH -> remaining + " more fish";
+        case SELL -> "$" + remaining + " more from quick selling";
+        case WEIGHT -> remaining + " g more total weight";
+        case CHEST -> remaining + " more Fisherman's Chests";
+        case MAP -> remaining + " more Treasure Maps";
+        case RUNE -> remaining + " more Runes";
+        case TREASURE -> remaining + " more Treasures";
+        case RARE_PUFFERFISH -> remaining + " more rare pufferfish";
+      };
+      player.sendMessage("Need " + msg + " to finish quest stage " + stage.stage());
       return;
     }
     switch (stage.rewardType()) {

@@ -4,7 +4,6 @@ import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import java.util.function.Consumer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -13,7 +12,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
-import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
@@ -32,8 +30,6 @@ public class AdminQuestEditorMenu implements Listener {
   private final QuestRepo questRepo;
   private final JavaPlugin plugin;
 
-  /** Pending chat editors mapped by player. */
-  private final Map<UUID, Consumer<String>> editors = new HashMap<>();
   /** Reward item editors by player. */
   private final Map<UUID, QuestStage> itemEditors = new HashMap<>();
 
@@ -65,10 +61,8 @@ public class AdminQuestEditorMenu implements Listener {
               "Reward: /" + stage.rewardData()));
           case ITEM -> lore.add(Component.text("Reward: Item"));
         }
-        lore.add(Component.text("L/R goal ±10"));
-        lore.add(Component.text("Shift+L/R edit reward"));
-        lore.add(Component.text("Middle: cycle reward, Shift+Middle: cycle goal"));
-        lore.add(Component.text("F:title Q:lore"));
+        lore.add(Component.text("Left: edit reward"));
+        lore.add(Component.text("Right/Shift-Right goal ±10"));
         meta.lore(lore);
         item.setItemMeta(meta);
       }
@@ -129,89 +123,27 @@ public class AdminQuestEditorMenu implements Listener {
 
     ClickType click = event.getClick();
     switch (click) {
-      case LEFT, RIGHT -> {
-        int delta = click == ClickType.RIGHT ? -10 : 10;
+      case LEFT -> {
+        if (stage.rewardType() != QuestStage.RewardType.ITEM) {
+          stage = new QuestStage(stage.stage(), stage.title(), stage.lore(), stage.goalType(),
+              stage.goal(), QuestStage.RewardType.ITEM, stage.reward(), stage.rewardData());
+          save(stage, player);
+        }
+        openItemEditor(player, stage);
+      }
+      case RIGHT, SHIFT_RIGHT -> {
+        int delta = click == ClickType.SHIFT_RIGHT ? -10 : 10;
         int newGoal = Math.max(0, stage.goal() + delta);
         QuestStage updated = new QuestStage(stage.stage(), stage.title(), stage.lore(),
             stage.goalType(), newGoal, stage.rewardType(), stage.reward(), stage.rewardData());
         save(updated, player);
         player.openInventory(createInventory());
       }
-      case SHIFT_LEFT, SHIFT_RIGHT -> {
-        if (stage.rewardType() == QuestStage.RewardType.MONEY) {
-          double delta = click == ClickType.SHIFT_RIGHT ? -10.0 : 10.0;
-          double newReward = Math.max(0, stage.reward() + delta);
-          QuestStage updated = new QuestStage(stage.stage(), stage.title(), stage.lore(),
-              stage.goalType(), stage.goal(), stage.rewardType(), newReward, stage.rewardData());
-          save(updated, player);
-          player.openInventory(createInventory());
-        } else if (stage.rewardType() == QuestStage.RewardType.COMMAND) {
-          editors.put(player.getUniqueId(), msg -> {
-            QuestStage updated = new QuestStage(stage.stage(), stage.title(), stage.lore(),
-                stage.goalType(), stage.goal(), stage.rewardType(), stage.reward(), msg);
-            save(updated, player);
-          });
-          player.closeInventory();
-          player.sendMessage("Type command in chat (without /)");
-        } else if (stage.rewardType() == QuestStage.RewardType.ITEM) {
-          openItemEditor(player, stage);
-        }
-      }
-      case MIDDLE -> {
-        if (event.isShiftClick()) {
-          QuestStage.GoalType[] vals = QuestStage.GoalType.values();
-          QuestStage.GoalType next = vals[(stage.goalType().ordinal() + 1) % vals.length];
-          QuestStage updated = new QuestStage(stage.stage(), stage.title(), stage.lore(),
-              next, stage.goal(), stage.rewardType(), stage.reward(), stage.rewardData());
-          save(updated, player);
-        } else {
-          QuestStage.RewardType[] vals = QuestStage.RewardType.values();
-          QuestStage.RewardType next = vals[(stage.rewardType().ordinal() + 1) % vals.length];
-          QuestStage updated = new QuestStage(stage.stage(), stage.title(), stage.lore(),
-              stage.goalType(), stage.goal(), next, stage.reward(), stage.rewardData());
-          save(updated, player);
-        }
-        player.openInventory(createInventory());
-      }
-      case SWAP_OFFHAND -> {
-        editors.put(player.getUniqueId(), msg -> {
-          QuestStage updated = new QuestStage(stage.stage(), msg, stage.lore(), stage.goalType(),
-              stage.goal(), stage.rewardType(), stage.reward(), stage.rewardData());
-          save(updated, player);
-        });
-        player.closeInventory();
-        player.sendMessage("Enter title in chat");
-      }
-      case DROP -> {
-        editors.put(player.getUniqueId(), msg -> {
-          QuestStage updated = new QuestStage(stage.stage(), stage.title(), msg, stage.goalType(),
-              stage.goal(), stage.rewardType(), stage.reward(), stage.rewardData());
-          save(updated, player);
-        });
-        player.closeInventory();
-        player.sendMessage("Enter lore in chat");
-      }
       default -> {
         // ignore
       }
     }
   }
-
-  @EventHandler
-  public void onChat(AsyncPlayerChatEvent event) {
-    Consumer<String> consumer = editors.remove(event.getPlayer().getUniqueId());
-    if (consumer == null) {
-      return;
-    }
-    event.setCancelled(true);
-    String msg = event.getMessage();
-    Bukkit.getScheduler().runTask(plugin, () -> {
-      consumer.accept(msg);
-      event.getPlayer().sendMessage("Updated.");
-      open(event.getPlayer());
-    });
-  }
-
   @EventHandler
   public void onClose(InventoryCloseEvent event) {
     if (!(event.getInventory().getHolder() instanceof ItemEditorHolder)) {
