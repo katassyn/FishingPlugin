@@ -67,6 +67,7 @@ public class PirateKingMenu implements Listener {
                 + id);
   }
 
+
   /** Open the Pirate King menu for a player. */
   public void open(Player player) {
     Inventory inv = createInventory();
@@ -149,6 +150,7 @@ public class PirateKingMenu implements Listener {
     for (int i = 0; i < 27; i++) inv.setItem(i, fill);
     inv.setItem(13, null);
     inv.setItem(26, guideItem());
+
     return inv;
   }
 
@@ -158,6 +160,7 @@ public class PirateKingMenu implements Listener {
     inv.setItem(15, fill);
     ItemStack map = inv.getItem(13);
     debugItem(map, "refresh-slot13");
+
     if (map == null || map.getType() == Material.AIR) {
       return;
     }
@@ -260,6 +263,7 @@ public class PirateKingMenu implements Listener {
       debugItem(cursor, "cursor-attempt");
     }
 
+
     // placing item into slot 13
     if (cursor != null && cursor.getType() != Material.AIR) {
       if (cursor.getAmount() != 1
@@ -268,6 +272,7 @@ public class PirateKingMenu implements Listener {
               && !mapService.isAsh(cursor))) {
         event.setCancelled(true);
         debugItem(cursor, "rejected-cursor");
+
         return;
       }
       if (current != null && current.getType() != Material.AIR) {
@@ -294,6 +299,7 @@ public class PirateKingMenu implements Listener {
     ItemStack item = inv.getItem(13);
     if (item != null && item.getType() != Material.AIR) {
       debugItem(item, "close-return");
+
       Player player = (Player) event.getPlayer();
       var leftover = player.getInventory().addItem(item);
       for (ItemStack drop : leftover.values()) {
