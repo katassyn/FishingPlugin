@@ -27,6 +27,23 @@ public class QuestMenu implements Listener {
     this.questService = questService;
   }
 
+  private Component objectiveLine(QuestStage stage) {
+    if (!stage.lore().isEmpty()) {
+      return Component.text(stage.lore(), NamedTextColor.GRAY);
+    }
+    String text = switch (stage.goalType()) {
+      case CATCH -> "Catch " + stage.goal() + " fish";
+      case SELL -> "Earn $" + stage.goal() + " from quick selling";
+      case WEIGHT -> "Catch " + stage.goal() + " g total weight";
+      case CHEST -> "Find " + stage.goal() + " Fisherman's Chests";
+      case MAP -> "Find " + stage.goal() + " Treasure Maps";
+      case RUNE -> "Collect " + stage.goal() + " Runes";
+      case TREASURE -> "Find " + stage.goal() + " Treasures";
+      case RARE_PUFFERFISH -> "Catch " + stage.goal() + " rare pufferfish";
+    };
+    return Component.text(text, NamedTextColor.GRAY);
+  }
+
   private Inventory createInventory(Player player) {
     Inventory inv = Bukkit.createInventory(new Holder(), 54, "Quests");
     ItemStack filler = new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
@@ -61,6 +78,7 @@ public class QuestMenu implements Listener {
           meta.displayName(Component.text("Quest " + (i + 1), NamedTextColor.GREEN));
           meta.lore(java.util.List.of(
               Component.text(stage.title(), NamedTextColor.GRAY),
+              objectiveLine(stage),
               Component.text("Completed", NamedTextColor.GREEN)));
           item.setItemMeta(meta);
         }
@@ -74,9 +92,7 @@ public class QuestMenu implements Listener {
           if (!stage.title().isEmpty()) {
             lore.add(Component.text(stage.title(), NamedTextColor.GRAY));
           }
-          if (!stage.lore().isEmpty()) {
-            lore.add(Component.text(stage.lore(), NamedTextColor.GRAY));
-          }
+          lore.add(objectiveLine(stage));
           lore.add(Component.text(
               "Progress: " + prog.count() + "/" + stage.goal(), NamedTextColor.YELLOW));
           if (ready) {
@@ -92,6 +108,7 @@ public class QuestMenu implements Listener {
           meta.displayName(Component.text("Quest " + (i + 1), NamedTextColor.RED));
           meta.lore(java.util.List.of(
               Component.text(stage.title(), NamedTextColor.GRAY),
+              objectiveLine(stage),
               Component.text("Locked", NamedTextColor.RED)));
           item.setItemMeta(meta);
         }

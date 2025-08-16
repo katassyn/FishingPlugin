@@ -106,6 +106,9 @@ public class FishingListener implements Listener {
     if (res.item() != null) {
       maybeGiveCraft(player);
     }
+    if (admin) {
+      rodService.convertAdminRod(player);
+    }
   }
 
 
