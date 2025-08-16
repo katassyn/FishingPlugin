@@ -11,6 +11,7 @@ import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.maks.fishingPlugin.model.QuestProgress;
 import org.maks.fishingPlugin.model.QuestStage;
 import org.maks.fishingPlugin.service.QuestChainService;
@@ -54,41 +55,44 @@ public class QuestMenu implements Listener {
       ItemStack item;
       ItemMeta meta;
       if (i < prog.stage()) {
-        item = new ItemStack(Material.LIME_STAINED_GLASS_PANE);
+        item = new ItemStack(Material.EMERALD_BLOCK);
         meta = item.getItemMeta();
         if (meta != null) {
-          meta.displayName(Component.text(stage.title()));
-          meta.lore(java.util.List.of(Component.text("Completed")));
+          meta.displayName(Component.text("Quest " + (i + 1), NamedTextColor.GREEN));
+          meta.lore(java.util.List.of(
+              Component.text(stage.title(), NamedTextColor.GRAY),
+              Component.text("Completed", NamedTextColor.GREEN)));
           item.setItemMeta(meta);
         }
       } else if (i == prog.stage()) {
         boolean ready = prog.count() >= stage.goal();
-        item = new ItemStack(ready ? Material.GOLD_INGOT : Material.PAPER);
+        item = new ItemStack(Material.GOLD_BLOCK);
         meta = item.getItemMeta();
         if (meta != null) {
-          meta.displayName(Component.text(stage.title()));
+          meta.displayName(Component.text("Quest " + (i + 1), NamedTextColor.GOLD));
           java.util.List<Component> lore = new java.util.ArrayList<>();
+          if (!stage.title().isEmpty()) {
+            lore.add(Component.text(stage.title(), NamedTextColor.GRAY));
+          }
           if (!stage.lore().isEmpty()) {
-            lore.add(Component.text(stage.lore()));
+            lore.add(Component.text(stage.lore(), NamedTextColor.GRAY));
           }
-          lore.add(Component.text("Progress: " + prog.count() + "/" + stage.goal()));
-          switch (stage.rewardType()) {
-            case MONEY -> lore.add(Component.text("Reward: $" +
-                String.format("%.0f", stage.reward())));
-            case COMMAND -> lore.add(Component.text("Reward: /" + stage.rewardData()));
-            case ITEM -> lore.add(Component.text("Reward: Item"));
-          }
+          lore.add(Component.text(
+              "Progress: " + prog.count() + "/" + stage.goal(), NamedTextColor.YELLOW));
           if (ready) {
-            lore.add(Component.text("Click to claim"));
+            lore.add(Component.text("Click to claim", NamedTextColor.GREEN));
           }
           meta.lore(lore);
           item.setItemMeta(meta);
         }
       } else {
-        item = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
+        item = new ItemStack(Material.REDSTONE_BLOCK);
         meta = item.getItemMeta();
         if (meta != null) {
-          meta.displayName(Component.text("Locked"));
+          meta.displayName(Component.text("Quest " + (i + 1), NamedTextColor.RED));
+          meta.lore(java.util.List.of(
+              Component.text(stage.title(), NamedTextColor.GRAY),
+              Component.text("Locked", NamedTextColor.RED)));
           item.setItemMeta(meta);
         }
       }
