@@ -15,6 +15,8 @@ import org.maks.fishingPlugin.data.Database;
 import org.maks.fishingPlugin.data.LootRepo;
 import org.maks.fishingPlugin.data.MirrorItemRepo;
 import org.maks.fishingPlugin.data.ParamRepo;
+import org.maks.fishingPlugin.data.TreasureMapRepo;
+import org.maks.fishingPlugin.data.LairLockRepo;
 import org.maks.fishingPlugin.data.ProfileRepo;
 import org.maks.fishingPlugin.data.QuestRepo;
 import org.maks.fishingPlugin.data.QuestProgressRepo;
@@ -43,10 +45,14 @@ import org.maks.fishingPlugin.gui.ShopMenu;
 import org.maks.fishingPlugin.gui.QuestMenu;
 import org.maks.fishingPlugin.gui.AdminLootEditorMenu;
 import org.maks.fishingPlugin.gui.AdminQuestEditorMenu;
+import org.maks.fishingPlugin.gui.PirateKingMenu;
 import org.maks.fishingPlugin.command.QuickSellCommand;
 import org.maks.fishingPlugin.command.GiveRodCommand;
 import org.maks.fishingPlugin.command.AdminRodCommand;
 import org.maks.fishingPlugin.command.QuestCommand;
+import org.maks.fishingPlugin.command.PirateKingCommand;
+import org.maks.fishingPlugin.service.TreasureMapService;
+import org.maks.fishingPlugin.service.BountyService;
 import net.milkbowl.vault.economy.Economy;
 
 public final class FishingPlugin extends JavaPlugin {
@@ -69,6 +75,8 @@ public final class FishingPlugin extends JavaPlugin {
     private QuestProgressRepo questProgressRepo;
     private ParamRepo paramRepo;
     private ProfileRepo profileRepo;
+    private TreasureMapRepo treasureMapRepo;
+    private LairLockRepo lairLockRepo;
     private MirrorItemService mirrorItemService;
     private boolean hasEliteLootbox;
     private boolean hasWorldGuard;
@@ -103,6 +111,8 @@ public final class FishingPlugin extends JavaPlugin {
         this.questProgressRepo = new QuestProgressRepo(ds);
         this.paramRepo = new ParamRepo(ds);
         this.profileRepo = new ProfileRepo(ds);
+        this.treasureMapRepo = new TreasureMapRepo(ds);
+        this.lairLockRepo = new LairLockRepo(ds);
         try {
             lootRepo.init();
             mirrorItemRepo.init();
@@ -110,6 +120,8 @@ public final class FishingPlugin extends JavaPlugin {
             questProgressRepo.init();
             paramRepo.init();
             profileRepo.init();
+            treasureMapRepo.init();
+            lairLockRepo.init();
         } catch (SQLException e) {
             getLogger().severe("Failed to initialize database tables: " + e.getMessage());
             getServer().getPluginManager().disablePlugin(this);
@@ -289,17 +301,23 @@ public final class FishingPlugin extends JavaPlugin {
         AdminLootEditorMenu adminMenu = new AdminLootEditorMenu(this, lootService, lootRepo, paramRepo,
             quickSellService, adminQuestMenu, mirrorItemRepo, mirrorItemService);
         MainMenu mainMenu = new MainMenu(shopMenu, teleportService, requiredPlayerLevel);
+        TreasureMapService treasureMapService = new TreasureMapService(this, economy, treasureMapRepo);
+        BountyService bountyService = new BountyService(this, teleportService, treasureMapService, lairLockRepo);
+        PirateKingMenu pirateKingMenu = new PirateKingMenu(this, treasureMapService, bountyService);
         getCommand("fishing").setExecutor(new FishingCommand(mainMenu, adminMenu, requiredPlayerLevel));
         getCommand("fishsell").setExecutor(new QuickSellCommand(quickSellMenu));
         getCommand("fishingrod").setExecutor(new GiveRodCommand(rodService));
         getCommand("adminrod").setExecutor(new AdminRodCommand(rodService));
         getCommand("fishing_quests").setExecutor(new QuestCommand(questMenu));
+        getCommand("pirate_king").setExecutor(new PirateKingCommand(pirateKingMenu));
 
         Bukkit.getPluginManager().registerEvents(mainMenu, this);
         Bukkit.getPluginManager().registerEvents(quickSellMenu, this);
         Bukkit.getPluginManager().registerEvents(questMenu, this);
         Bukkit.getPluginManager().registerEvents(adminMenu, this);
         Bukkit.getPluginManager().registerEvents(adminQuestMenu, this);
+        Bukkit.getPluginManager().registerEvents(pirateKingMenu, this);
+        Bukkit.getPluginManager().registerEvents(bountyService, this);
 
         getLogger().info("FishingPlugin enabled");
     }
