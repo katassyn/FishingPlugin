@@ -95,18 +95,6 @@ public class AdminQuestEditorMenu implements Listener {
   private void openItemEditor(Player player, QuestStage stage) {
     Inventory inv = Bukkit.createInventory(new ItemEditorHolder(), 27,
         "Reward for stage " + stage.stage());
-    ItemStack filler = new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
-    ItemMeta fm = filler.getItemMeta();
-    if (fm != null) {
-      fm.displayName(Component.text(" "));
-      filler.setItemMeta(fm);
-    }
-    for (int i = 0; i < 27; i++) {
-      if (i == 13 || i == 26) {
-        continue;
-      }
-      inv.setItem(i, filler);
-    }
     ItemStack confirm = new ItemStack(Material.LIME_CONCRETE);
     ItemMeta cm = confirm.getItemMeta();
     if (cm != null) {
@@ -116,13 +104,17 @@ public class AdminQuestEditorMenu implements Listener {
     inv.setItem(26, confirm);
     if (stage.rewardType() == QuestStage.RewardType.ITEM && !stage.rewardData().isEmpty()) {
       try {
-        inv.setItem(13, ItemSerialization.fromBase64(stage.rewardData()));
+        ItemStack[] items = ItemSerialization.fromBase64List(stage.rewardData());
+        for (int i = 0; i < Math.min(items.length, 26); i++) {
+          inv.setItem(i, items[i]);
+        }
       } catch (Exception ignored) {
       }
     }
     itemEditors.put(player.getUniqueId(), stage);
     player.openInventory(inv);
-    player.sendMessage("Place reward item in the center slot and click the green block to confirm.");
+    player.sendMessage(
+        "Place reward items in the inventory and click the green block to confirm.");
   }
 
   @EventHandler
@@ -160,26 +152,34 @@ public class AdminQuestEditorMenu implements Listener {
       return;
     }
 
-    if (event.getInventory().getHolder() instanceof ItemEditorHolder) {
+    if (event.getView().getTopInventory().getHolder() instanceof ItemEditorHolder) {
       Player player = (Player) event.getWhoClicked();
-      int slot = event.getRawSlot();
-      if (slot == 26) {
-        event.setCancelled(true);
-        QuestStage stage = itemEditors.remove(player.getUniqueId());
-        if (stage != null) {
-          ItemStack item = event.getInventory().getItem(13);
-          String data = "";
-          if (item != null && !item.getType().isAir()) {
-            data = ItemSerialization.toBase64(item);
+      if (event.getClickedInventory() != null
+          && event.getClickedInventory().getHolder() instanceof ItemEditorHolder) {
+        int slot = event.getRawSlot();
+        if (slot == 26) {
+          event.setCancelled(true);
+          QuestStage stage = itemEditors.remove(player.getUniqueId());
+          if (stage != null) {
+            Inventory top = event.getView().getTopInventory();
+            java.util.List<ItemStack> items = new java.util.ArrayList<>();
+            for (int i = 0; i < 26; i++) {
+              ItemStack item = top.getItem(i);
+              if (item != null && !item.getType().isAir()) {
+                items.add(item);
+              }
+            }
+            String data = "";
+            if (!items.isEmpty()) {
+              data = ItemSerialization.toBase64(items.toArray(new ItemStack[0]));
+            }
+            QuestStage updated = new QuestStage(stage.stage(), stage.title(), stage.lore(),
+                stage.goalType(), stage.goal(), QuestStage.RewardType.ITEM, stage.reward(), data);
+            save(updated, player);
+            player.sendMessage("Reward saved for stage " + stage.stage());
           }
-          QuestStage updated = new QuestStage(stage.stage(), stage.title(), stage.lore(),
-              stage.goalType(), stage.goal(), QuestStage.RewardType.ITEM, stage.reward(), data);
-          save(updated, player);
-          player.sendMessage("Reward saved for stage " + stage.stage());
+          player.closeInventory();
         }
-        player.closeInventory();
-      } else if (slot != 13) {
-        event.setCancelled(true);
       }
     }
   }
