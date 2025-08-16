@@ -17,6 +17,7 @@ import org.maks.fishingPlugin.service.BountyService;
 import org.maks.fishingPlugin.service.TreasureMapService;
 import java.util.List;
 
+
 /**
  * Menu for identifying treasure maps with the Pirate King.
  */
@@ -119,13 +120,13 @@ public class PirateKingMenu implements Listener {
     }
     return item;
   }
-
   private Inventory createInventory() {
     Inventory inv = Bukkit.createInventory(new Holder(), 27, "Pirate King");
     ItemStack fill = filler();
     for (int i = 0; i < 27; i++) inv.setItem(i, fill);
     inv.setItem(13, null);
     inv.setItem(26, guideItem());
+
     return inv;
   }
 
