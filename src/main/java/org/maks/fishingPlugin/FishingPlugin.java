@@ -248,7 +248,8 @@ public final class FishingPlugin extends JavaPlugin {
         multiplier = Double.parseDouble(params.getOrDefault("global_multiplier", String.valueOf(multiplier)));
         tax = Double.parseDouble(params.getOrDefault("quicksell_tax", String.valueOf(tax)));
         symbol = params.getOrDefault("currency_symbol", symbol);
-        this.quickSellService = new QuickSellService(this, lootService, economy, levelService, multiplier, tax, symbol);
+        this.questService = new QuestChainService(economy, questRepo, questProgressRepo, this);
+        this.quickSellService = new QuickSellService(this, lootService, economy, levelService, questService, multiplier, tax, symbol);
 
         var acSec = getConfig().getConfigurationSection("anti_cheat");
         int sampleSize = acSec != null ? acSec.getInt("sample_size", 5) : 5;
@@ -265,7 +266,6 @@ public final class FishingPlugin extends JavaPlugin {
 
         this.qteService = new QteService(chance, duration, yawThreshold);
         this.teleportService = new TeleportService(this);
-        this.questService = new QuestChainService(economy, questRepo, questProgressRepo, this);
         if (pm.getPlugin("PlaceholderAPI") != null) {
             new org.maks.fishingPlugin.integration.FishingExpansion(this).register();
         }

@@ -1,64 +1,253 @@
 quests:
   - stage: 1
-    goal: 10
-    reward: 100
-  - stage: 2
-    goal: 20
-    reward: 200
-  - stage: 3
-    goal: 30
-    reward: 300
-  - stage: 4
-    goal: 40
-    reward: 400
-  - stage: 5
-    goal: 50
-    reward: 500
-  - stage: 6
-    goal: 60
-    reward: 600
-  - stage: 7
-    goal: 70
-    reward: 700
-  - stage: 8
-    goal: 80
-    reward: 800
-  - stage: 9
-    goal: 90
-    reward: 900
-  - stage: 10
-    goal: 100
-    reward: 1000
-  - stage: 11
-    goal: 110
-    reward: 1100
-  - stage: 12
-    goal: 120
-    reward: 1200
-  - stage: 13
-    goal: 130
-    reward: 1300
-  - stage: 14
-    goal: 140
-    reward: 1400
-  - stage: 15
+    title: "First Cast"
+    goalType: CATCH
     goal: 150
-    reward: 1500
+    rewardType: ITEM
+    reward: 0
+  - stage: 2
+    title: "Seed Money"
+    goalType: SELL
+    goal: 120000
+    rewardType: ITEM
+    reward: 0
+  - stage: 3
+    title: "Solid Weight"
+    goalType: WEIGHT
+    goal: 400000
+    rewardType: ITEM
+    reward: 0
+  - stage: 4
+    title: "First Chests"
+    goalType: CHEST
+    goal: 10
+    rewardType: ITEM
+    reward: 0
+  - stage: 5
+    title: "Charted Waters"
+    goalType: MAP
+    goal: 4
+    rewardType: ITEM
+    reward: 0
+  - stage: 6
+    title: "Rune Touch"
+    goalType: RUNE
+    goal: 4
+    rewardType: ITEM
+    reward: 0
+  - stage: 7
+    title: "Steady Hands"
+    goalType: CATCH
+    goal: 500
+    rewardType: ITEM
+    reward: 0
+  - stage: 8
+    title: "Big Payout"
+    goalType: SELL
+    goal: 700000
+    rewardType: ITEM
+    reward: 0
+  - stage: 9
+    title: "Heavy Net"
+    goalType: WEIGHT
+    goal: 1200000
+    rewardType: ITEM
+    reward: 0
+  - stage: 10
+    title: "Chest Collector"
+    goalType: CHEST
+    goal: 20
+    rewardType: ITEM
+    reward: 0
+  - stage: 11
+    title: "Mapmaker"
+    goalType: MAP
+    goal: 8
+    rewardType: ITEM
+    reward: 0
+  - stage: 12
+    title: "Rune Reader"
+    goalType: RUNE
+    goal: 8
+    rewardType: ITEM
+    reward: 0
+  - stage: 13
+    title: "First Relic"
+    goalType: TREASURE
+    goal: 1
+    rewardType: ITEM
+    reward: 0
+  - stage: 14
+    title: "Thousand Casts"
+    goalType: CATCH
+    goal: 1000
+    rewardType: ITEM
+    reward: 0
+  - stage: 15
+    title: "Deep Pockets"
+    goalType: SELL
+    goal: 2500000
+    rewardType: ITEM
+    reward: 0
   - stage: 16
-    goal: 160
-    reward: 1600
+    title: "Leviathan Load"
+    goalType: WEIGHT
+    goal: 3000000
+    rewardType: ITEM
+    reward: 0
   - stage: 17
-    goal: 170
-    reward: 1700
+    title: "Chest Hoarder"
+    goalType: CHEST
+    goal: 40
+    rewardType: ITEM
+    reward: 0
   - stage: 18
-    goal: 180
-    reward: 1800
+    title: "Puffer Scare"
+    goalType: RARE_PUFFERFISH
+    goal: 5
+    rewardType: ITEM
+    reward: 0
   - stage: 19
-    goal: 190
-    reward: 1900
+    title: "Master Cartographer"
+    goalType: MAP
+    goal: 12
+    rewardType: ITEM
+    reward: 0
   - stage: 20
-    goal: 200
-    reward: 2000
+    title: "Rune Scholar"
+    goalType: RUNE
+    goal: 12
+    rewardType: ITEM
+    reward: 0
   - stage: 21
-    goal: 210
-    reward: 2100
+    title: "Relic Hunter"
+    goalType: TREASURE
+    goal: 2
+    rewardType: ITEM
+    reward: 0
+  - stage: 22
+    title: "Endless Casts I"
+    goalType: CATCH
+    goal: 1500
+    rewardType: ITEM
+    reward: 0
+  - stage: 23
+    title: "Capital Reserve"
+    goalType: SELL
+    goal: 4000000
+    rewardType: ITEM
+    reward: 0
+  - stage: 24
+    title: "Heavier Nets I"
+    goalType: WEIGHT
+    goal: 5000000
+    rewardType: ITEM
+    reward: 0
+  - stage: 25
+    title: "Chest Runner I"
+    goalType: CHEST
+    goal: 60
+    rewardType: ITEM
+    reward: 0
+  - stage: 26
+    title: "Puffer Peril"
+    goalType: RARE_PUFFERFISH
+    goal: 10
+    rewardType: ITEM
+    reward: 0
+  - stage: 27
+    title: "Chartroom II"
+    goalType: MAP
+    goal: 14
+    rewardType: ITEM
+    reward: 0
+  - stage: 28
+    title: "Rune Adept"
+    goalType: RUNE
+    goal: 14
+    rewardType: ITEM
+    reward: 0
+  - stage: 29
+    title: "Relic Seeker"
+    goalType: TREASURE
+    goal: 3
+    rewardType: ITEM
+    reward: 0
+  - stage: 30
+    title: "Endless Casts II"
+    goalType: CATCH
+    goal: 2000
+    rewardType: ITEM
+    reward: 0
+  - stage: 31
+    title: "Tycoon Angler"
+    goalType: SELL
+    goal: 6500000
+    rewardType: ITEM
+    reward: 0
+  - stage: 32
+    title: "Heavier Nets II"
+    goalType: WEIGHT
+    goal: 7500000
+    rewardType: ITEM
+    reward: 0
+  - stage: 33
+    title: "Chest Runner II"
+    goalType: CHEST
+    goal: 80
+    rewardType: ITEM
+    reward: 0
+  - stage: 34
+    title: "Puffer Patrol"
+    goalType: RARE_PUFFERFISH
+    goal: 15
+    rewardType: ITEM
+    reward: 0
+  - stage: 35
+    title: "Cartographer Prime"
+    goalType: MAP
+    goal: 16
+    rewardType: ITEM
+    reward: 0
+  - stage: 36
+    title: "Relic Seeker+"
+    goalType: TREASURE
+    goal: 4
+    rewardType: ITEM
+    reward: 0
+  - stage: 37
+    title: "Rune Scholar+"
+    goalType: RUNE
+    goal: 16
+    rewardType: ITEM
+    reward: 0
+  - stage: 38
+    title: "Endless Casts III"
+    goalType: CATCH
+    goal: 2500
+    rewardType: ITEM
+    reward: 0
+  - stage: 39
+    title: "Leviathan Load+"
+    goalType: WEIGHT
+    goal: 10000000
+    rewardType: ITEM
+    reward: 0
+  - stage: 40
+    title: "Relic Master"
+    goalType: TREASURE
+    goal: 5
+    rewardType: ITEM
+    reward: 0
+  - stage: 41
+    title: "Chest Baron"
+    goalType: CHEST
+    goal: 100
+    rewardType: ITEM
+    reward: 0
+  - stage: 42
+    title: "Ocean's Legend"
+    goalType: TREASURE
+    goal: 6
+    rewardType: ITEM
+    reward: 0
