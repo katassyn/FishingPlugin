@@ -102,8 +102,18 @@ public class AdminQuestEditorMenu implements Listener {
       filler.setItemMeta(fm);
     }
     for (int i = 0; i < 27; i++) {
+      if (i == 13 || i == 26) {
+        continue;
+      }
       inv.setItem(i, filler);
     }
+    ItemStack confirm = new ItemStack(Material.LIME_CONCRETE);
+    ItemMeta cm = confirm.getItemMeta();
+    if (cm != null) {
+      cm.displayName(Component.text("Confirm"));
+      confirm.setItemMeta(cm);
+    }
+    inv.setItem(26, confirm);
     if (stage.rewardType() == QuestStage.RewardType.ITEM && !stage.rewardData().isEmpty()) {
       try {
         inv.setItem(13, ItemSerialization.fromBase64(stage.rewardData()));
@@ -112,40 +122,64 @@ public class AdminQuestEditorMenu implements Listener {
     }
     itemEditors.put(player.getUniqueId(), stage);
     player.openInventory(inv);
+    player.sendMessage("Place reward item in the center slot and click the green block to confirm.");
   }
 
   @EventHandler
   public void onClick(InventoryClickEvent event) {
-    if (!(event.getInventory().getHolder() instanceof Holder holder)) {
-      return;
-    }
-    event.setCancelled(true);
-    Player player = (Player) event.getWhoClicked();
-    QuestStage stage = holder.map.get(event.getRawSlot());
-    if (stage == null) {
+    if (event.getInventory().getHolder() instanceof Holder holder) {
+      event.setCancelled(true);
+      Player player = (Player) event.getWhoClicked();
+      QuestStage stage = holder.map.get(event.getRawSlot());
+      if (stage == null) {
+        return;
+      }
+
+      ClickType click = event.getClick();
+      switch (click) {
+        case LEFT -> {
+          if (stage.rewardType() != QuestStage.RewardType.ITEM) {
+            stage = new QuestStage(stage.stage(), stage.title(), stage.lore(), stage.goalType(),
+                stage.goal(), QuestStage.RewardType.ITEM, stage.reward(), stage.rewardData());
+            save(stage, player);
+          }
+          openItemEditor(player, stage);
+        }
+        case RIGHT, SHIFT_RIGHT -> {
+          int delta = click == ClickType.SHIFT_RIGHT ? -10 : 10;
+          int newGoal = Math.max(0, stage.goal() + delta);
+          QuestStage updated = new QuestStage(stage.stage(), stage.title(), stage.lore(),
+              stage.goalType(), newGoal, stage.rewardType(), stage.reward(), stage.rewardData());
+          save(updated, player);
+          player.openInventory(createInventory());
+        }
+        default -> {
+          // ignore
+        }
+      }
       return;
     }
 
-    ClickType click = event.getClick();
-    switch (click) {
-      case LEFT -> {
-        if (stage.rewardType() != QuestStage.RewardType.ITEM) {
-          stage = new QuestStage(stage.stage(), stage.title(), stage.lore(), stage.goalType(),
-              stage.goal(), QuestStage.RewardType.ITEM, stage.reward(), stage.rewardData());
-          save(stage, player);
+    if (event.getInventory().getHolder() instanceof ItemEditorHolder) {
+      Player player = (Player) event.getWhoClicked();
+      int slot = event.getRawSlot();
+      if (slot == 26) {
+        event.setCancelled(true);
+        QuestStage stage = itemEditors.remove(player.getUniqueId());
+        if (stage != null) {
+          ItemStack item = event.getInventory().getItem(13);
+          String data = "";
+          if (item != null && !item.getType().isAir()) {
+            data = ItemSerialization.toBase64(item);
+          }
+          QuestStage updated = new QuestStage(stage.stage(), stage.title(), stage.lore(),
+              stage.goalType(), stage.goal(), QuestStage.RewardType.ITEM, stage.reward(), data);
+          save(updated, player);
+          player.sendMessage("Reward saved for stage " + stage.stage());
         }
-        openItemEditor(player, stage);
-      }
-      case RIGHT, SHIFT_RIGHT -> {
-        int delta = click == ClickType.SHIFT_RIGHT ? -10 : 10;
-        int newGoal = Math.max(0, stage.goal() + delta);
-        QuestStage updated = new QuestStage(stage.stage(), stage.title(), stage.lore(),
-            stage.goalType(), newGoal, stage.rewardType(), stage.reward(), stage.rewardData());
-        save(updated, player);
-        player.openInventory(createInventory());
-      }
-      default -> {
-        // ignore
+        player.closeInventory();
+      } else if (slot != 13) {
+        event.setCancelled(true);
       }
     }
   }
@@ -155,18 +189,7 @@ public class AdminQuestEditorMenu implements Listener {
       return;
     }
     Player player = (Player) event.getPlayer();
-    QuestStage stage = itemEditors.remove(player.getUniqueId());
-    if (stage == null) {
-      return;
-    }
-    ItemStack item = event.getInventory().getItem(13);
-    String data = "";
-    if (item != null && !item.getType().isAir()) {
-      data = ItemSerialization.toBase64(item);
-    }
-    QuestStage updated = new QuestStage(stage.stage(), stage.title(), stage.lore(),
-        stage.goalType(), stage.goal(), QuestStage.RewardType.ITEM, stage.reward(), data);
-    save(updated, player);
+    itemEditors.remove(player.getUniqueId());
     Bukkit.getScheduler().runTask(plugin, () -> open(player));
   }
 
