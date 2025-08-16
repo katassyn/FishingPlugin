@@ -41,9 +41,14 @@ public class AdminQuestEditorMenu implements Listener {
 
   private Inventory createInventory() {
     Map<Integer, QuestStage> map = new HashMap<>();
-    Inventory inv = Bukkit.createInventory(new Holder(map), 27, "Quest Editor");
+    java.util.List<QuestStage> stages = questService.getStages();
+    int size = Math.min(54, Math.max(9, ((stages.size() + 8) / 9) * 9));
+    Inventory inv = Bukkit.createInventory(new Holder(map), size, "Quest Editor");
     int slot = 0;
-    for (QuestStage stage : questService.getStages()) {
+    for (QuestStage stage : stages) {
+      if (slot >= size) {
+        break;
+      }
       ItemStack item = new ItemStack(Material.PAPER);
       ItemMeta meta = item.getItemMeta();
       if (meta != null) {
