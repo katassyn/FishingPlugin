@@ -17,7 +17,6 @@ import org.maks.fishingPlugin.service.BountyService;
 import org.maks.fishingPlugin.service.TreasureMapService;
 import java.util.List;
 
-
 /**
  * Menu for identifying treasure maps with the Pirate King.
  */
@@ -120,6 +119,7 @@ public class PirateKingMenu implements Listener {
     }
     return item;
   }
+
   private Inventory createInventory() {
     Inventory inv = Bukkit.createInventory(new Holder(), 27, "Pirate King");
     ItemStack fill = filler();
@@ -138,6 +138,26 @@ public class PirateKingMenu implements Listener {
     if (map == null || map.getType() == Material.AIR) {
       return;
     }
+    // prevent stacking or foreign items slipping in
+    if (!mapService.isUnidentified(map)
+        && !mapService.isIdentified(map)
+        && !mapService.isAsh(map)) {
+      inv.setItem(13, null);
+      var leftover = player.getInventory().addItem(map);
+      for (ItemStack drop : leftover.values()) {
+        player.getWorld().dropItem(player.getLocation(), drop);
+      }
+      return;
+    }
+    if (map.getAmount() > 1) {
+      inv.setItem(13, null);
+      var leftover = player.getInventory().addItem(map);
+      for (ItemStack drop : leftover.values()) {
+        player.getWorld().dropItem(player.getLocation(), drop);
+      }
+      return;
+    }
+
     if (mapService.isAsh(map)) {
       inv.setItem(13, null);
       var leftover = player.getInventory().addItem(map);
@@ -166,9 +186,17 @@ public class PirateKingMenu implements Listener {
   @EventHandler
   public void onClick(InventoryClickEvent event) {
     if (!(event.getInventory().getHolder() instanceof Holder)) return;
-    int slot = event.getRawSlot();
     Inventory inv = event.getInventory();
     Player player = (Player) event.getWhoClicked();
+    int slot = event.getRawSlot();
+
+    // disallow shift-clicking to avoid bypassing slot checks
+    if (event.isShiftClick()) {
+      event.setCancelled(true);
+      return;
+    }
+
+
     if (slot == 11) {
       event.setCancelled(true);
       ItemStack map = inv.getItem(13);
@@ -182,6 +210,7 @@ public class PirateKingMenu implements Listener {
       Bukkit.getScheduler().runTask(plugin, () -> refresh(player, inv));
       return;
     }
+
     if (slot == 15) {
       event.setCancelled(true);
       ItemStack map = inv.getItem(13);
@@ -192,13 +221,50 @@ public class PirateKingMenu implements Listener {
       Bukkit.getScheduler().runTask(plugin, () -> refresh(player, inv));
       return;
     }
+
+    // clicks in player inventory are allowed
+    if (slot >= inv.getSize()) {
+      return;
+    }
+
+    // only slot 13 accepts maps
     if (slot != 13) {
       event.setCancelled(true);
+      return;
     }
+
+    ItemStack cursor = event.getCursor();
+    ItemStack current = inv.getItem(13);
+
+    // placing item into slot 13
+    if (cursor != null && cursor.getType() != Material.AIR) {
+      if (cursor.getAmount() != 1
+          || (!mapService.isUnidentified(cursor)
+              && !mapService.isIdentified(cursor)
+              && !mapService.isAsh(cursor))) {
+        event.setCancelled(true);
+        return;
+      }
+      if (current != null && current.getType() != Material.AIR) {
+        event.setCancelled(true);
+        return;
+      }
+    }
+
+    // picking up existing item is fine; just refresh afterwards
+
     Bukkit.getScheduler().runTask(plugin, () -> refresh(player, inv));
   }
 
   @EventHandler
+  public void onDrag(org.bukkit.event.inventory.InventoryDragEvent event) {
+    if (event.getInventory().getHolder() instanceof Holder) {
+      event.setCancelled(true);
+    }
+  }
+
+  @EventHandler
+
   public void onClose(InventoryCloseEvent event) {
     if (!(event.getInventory().getHolder() instanceof Holder)) return;
     Inventory inv = event.getInventory();
