@@ -58,16 +58,23 @@ public class RodService {
     return meta != null && container(meta).has(adminKey, PersistentDataType.BYTE);
   }
 
-  /** Create a new fishing rod item with the given stats and owner. */
+  /**
+   * Create a new fishing rod item with the given stats and optional owner.
+   * If {@code owner} is {@code null} the rod is unclaimed and can be traded
+   * until a player uses it for the first time.
+   */
   public ItemStack createRod(Player owner, int level, long xp) {
     ItemStack rod = new ItemStack(Material.FISHING_ROD);
     ItemMeta meta = rod.getItemMeta();
     if (meta != null) {
       container(meta).set(rodKey, PersistentDataType.BYTE, (byte) 1);
-      container(meta).set(ownerKey, PersistentDataType.STRING,
-          owner.getUniqueId().toString());
-      container(meta).set(ownerNameKey, PersistentDataType.STRING, owner.getName());
-      updateMeta(meta, level, xp, owner.getName());
+      if (owner != null) {
+        container(meta).set(ownerKey, PersistentDataType.STRING,
+            owner.getUniqueId().toString());
+        container(meta).set(ownerNameKey, PersistentDataType.STRING, owner.getName());
+      }
+      String ownerName = owner != null ? owner.getName() : "???";
+      updateMeta(meta, level, xp, ownerName);
       rod.setItemMeta(meta);
     }
     return rod;
@@ -166,9 +173,9 @@ public class RodService {
     }
   }
 
-  /** Give a fresh rod to the player. */
+  /** Give a fresh, unclaimed rod to the player. */
   public void giveRod(Player player) {
-    player.getInventory().addItem(createRod(player, 1, 0));
+    player.getInventory().addItem(createRod(null, 1, 0));
   }
 
   /** Give the admin rod to the player. */
@@ -176,12 +183,26 @@ public class RodService {
     player.getInventory().addItem(createAdminRod(player));
   }
 
-  /** Check if the given player is the owner of the rod item. */
+  /**
+   * Check if the given player is the owner of the rod item.
+   * If the rod has no owner yet, it becomes owned by the player.
+   */
   public boolean isOwner(ItemStack item, Player player) {
     if (!isRod(item)) return false;
     ItemMeta meta = item.getItemMeta();
     if (meta == null) return false;
-    String owner = container(meta).get(ownerKey, PersistentDataType.STRING);
-    return owner != null && owner.equals(player.getUniqueId().toString());
+    PersistentDataContainer pdc = container(meta);
+    String owner = pdc.get(ownerKey, PersistentDataType.STRING);
+    if (owner == null) {
+      pdc.set(ownerKey, PersistentDataType.STRING, player.getUniqueId().toString());
+      pdc.set(ownerNameKey, PersistentDataType.STRING, player.getName());
+      Integer level = pdc.get(levelKey, PersistentDataType.INTEGER);
+      Long xp = pdc.get(xpKey, PersistentDataType.LONG);
+      updateMeta(meta, level == null ? 1 : level, xp == null ? 0 : xp, player.getName());
+      item.setItemMeta(meta);
+      player.getInventory().setItemInMainHand(item);
+      return true;
+    }
+    return owner.equals(player.getUniqueId().toString());
   }
 }
