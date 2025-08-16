@@ -52,7 +52,7 @@ public class QuestChainService {
   private void loadDefinitions(JavaPlugin plugin) {
     try {
       List<QuestStage> fromDb = questRepo.findAll();
-      if (fromDb.size() == 42) {
+      if (!fromDb.isEmpty()) {
         stages.addAll(fromDb);
         return;
       }
@@ -283,9 +283,16 @@ public class QuestChainService {
       }
       case ITEM -> {
         try {
-          ItemStack item = ItemSerialization.fromBase64(stage.rewardData());
-          player.getInventory().addItem(item);
-          player.sendMessage("Item reward received for quest stage " + stage.stage());
+          ItemStack[] items = ItemSerialization.fromBase64List(stage.rewardData());
+          if (items.length > 0) {
+            Map<Integer, ItemStack> leftover = player.getInventory().addItem(items);
+            if (!leftover.isEmpty()) {
+              for (ItemStack it : leftover.values()) {
+                player.getWorld().dropItem(player.getLocation(), it);
+              }
+            }
+          }
+          player.sendMessage("Item rewards received for quest stage " + stage.stage());
         } catch (Exception e) {
           player.sendMessage("Failed to give item reward: " + e.getMessage());
         }
