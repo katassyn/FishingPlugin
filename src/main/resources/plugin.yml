@@ -20,10 +20,17 @@ commands:
     description: Give the admin fishing rod
     usage: /adminrod
     permission: fishing.admin
+  fishing_quests:
+    description: View fishing quests
+    usage: /fishing_quests
+    permission: fishing.use
 permissions:
   fishing.admin:
     description: Allows editing loot and quests
     default: op
   fishing.sell:
     description: Allows selling fish
+    default: true
+  fishing.use:
+    description: Allows accessing fishing features
     default: true

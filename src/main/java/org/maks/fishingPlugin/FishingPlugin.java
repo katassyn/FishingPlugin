@@ -46,6 +46,7 @@ import org.maks.fishingPlugin.gui.AdminQuestEditorMenu;
 import org.maks.fishingPlugin.command.QuickSellCommand;
 import org.maks.fishingPlugin.command.GiveRodCommand;
 import org.maks.fishingPlugin.command.AdminRodCommand;
+import org.maks.fishingPlugin.command.QuestCommand;
 import net.milkbowl.vault.economy.Economy;
 
 public final class FishingPlugin extends JavaPlugin {
@@ -292,6 +293,7 @@ public final class FishingPlugin extends JavaPlugin {
         getCommand("fishsell").setExecutor(new QuickSellCommand(quickSellMenu));
         getCommand("fishingrod").setExecutor(new GiveRodCommand(rodService));
         getCommand("adminrod").setExecutor(new AdminRodCommand(rodService));
+        getCommand("fishing_quests").setExecutor(new QuestCommand(questMenu));
 
         Bukkit.getPluginManager().registerEvents(mainMenu, this);
         Bukkit.getPluginManager().registerEvents(quickSellMenu, this);
