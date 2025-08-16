@@ -44,6 +44,30 @@ public class PirateKingMenu implements Listener {
         plugin.getConfig().getString("treasure_maps.messages.inserted_identified", "");
   }
 
+  private void debugItem(ItemStack item, String context) {
+    if (item == null) {
+      plugin.getLogger().info("[PirateKingMenu] " + context + " item=null");
+      return;
+    }
+    var state = mapService.getState(item);
+    var lair = mapService.getLair(item);
+    var id = mapService.getId(item);
+    plugin
+        .getLogger()
+        .info(
+            "[PirateKingMenu] "
+                + context
+                + " type="
+                + item.getType()
+                + " state="
+                + state
+                + " lair="
+                + lair
+                + " id="
+                + id);
+  }
+
+
   /** Open the Pirate King menu for a player. */
   public void open(Player player) {
     Inventory inv = createInventory();
@@ -135,6 +159,8 @@ public class PirateKingMenu implements Listener {
     inv.setItem(11, fill);
     inv.setItem(15, fill);
     ItemStack map = inv.getItem(13);
+    debugItem(map, "refresh-slot13");
+
     if (map == null || map.getType() == Material.AIR) {
       return;
     }
@@ -157,7 +183,6 @@ public class PirateKingMenu implements Listener {
       }
       return;
     }
-
     if (mapService.isAsh(map)) {
       inv.setItem(13, null);
       var leftover = player.getInventory().addItem(map);
@@ -195,7 +220,6 @@ public class PirateKingMenu implements Listener {
       event.setCancelled(true);
       return;
     }
-
 
     if (slot == 11) {
       event.setCancelled(true);
@@ -235,6 +259,10 @@ public class PirateKingMenu implements Listener {
 
     ItemStack cursor = event.getCursor();
     ItemStack current = inv.getItem(13);
+    if (cursor != null && cursor.getType() != Material.AIR) {
+      debugItem(cursor, "cursor-attempt");
+    }
+
 
     // placing item into slot 13
     if (cursor != null && cursor.getType() != Material.AIR) {
@@ -243,6 +271,8 @@ public class PirateKingMenu implements Listener {
               && !mapService.isIdentified(cursor)
               && !mapService.isAsh(cursor))) {
         event.setCancelled(true);
+        debugItem(cursor, "rejected-cursor");
+
         return;
       }
       if (current != null && current.getType() != Material.AIR) {
@@ -252,7 +282,6 @@ public class PirateKingMenu implements Listener {
     }
 
     // picking up existing item is fine; just refresh afterwards
-
     Bukkit.getScheduler().runTask(plugin, () -> refresh(player, inv));
   }
 
@@ -264,12 +293,13 @@ public class PirateKingMenu implements Listener {
   }
 
   @EventHandler
-
   public void onClose(InventoryCloseEvent event) {
     if (!(event.getInventory().getHolder() instanceof Holder)) return;
     Inventory inv = event.getInventory();
     ItemStack item = inv.getItem(13);
     if (item != null && item.getType() != Material.AIR) {
+      debugItem(item, "close-return");
+
       Player player = (Player) event.getPlayer();
       var leftover = player.getInventory().addItem(item);
       for (ItemStack drop : leftover.values()) {
