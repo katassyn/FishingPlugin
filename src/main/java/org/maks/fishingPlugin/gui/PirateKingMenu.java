@@ -126,6 +126,7 @@ public class PirateKingMenu implements Listener {
     for (int i = 0; i < 27; i++) inv.setItem(i, fill);
     inv.setItem(13, null);
     inv.setItem(26, guideItem());
+
     return inv;
   }
 
@@ -156,6 +157,7 @@ public class PirateKingMenu implements Listener {
       }
       return;
     }
+
     if (mapService.isAsh(map)) {
       inv.setItem(13, null);
       var leftover = player.getInventory().addItem(map);
@@ -193,6 +195,7 @@ public class PirateKingMenu implements Listener {
       event.setCancelled(true);
       return;
     }
+
 
     if (slot == 11) {
       event.setCancelled(true);
@@ -249,6 +252,7 @@ public class PirateKingMenu implements Listener {
     }
 
     // picking up existing item is fine; just refresh afterwards
+
     Bukkit.getScheduler().runTask(plugin, () -> refresh(player, inv));
   }
 
@@ -260,6 +264,7 @@ public class PirateKingMenu implements Listener {
   }
 
   @EventHandler
+
   public void onClose(InventoryCloseEvent event) {
     if (!(event.getInventory().getHolder() instanceof Holder)) return;
     Inventory inv = event.getInventory();
