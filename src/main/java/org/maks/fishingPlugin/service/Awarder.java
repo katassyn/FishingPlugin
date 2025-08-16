@@ -83,12 +83,14 @@ public class Awarder {
       item.setItemMeta(meta);
     }
     player.getInventory().addItem(item);
+    String prefix = ChatColor.YELLOW + "[FISHING POOL] "
+        + ChatColor.GREEN + player.getName() + ChatColor.YELLOW + " ";
     if (loot.category() == Category.RUNE) {
-      Bukkit.broadcastMessage("[FISHING POOL] " + player.getName() + " caught a rune!");
+      Bukkit.broadcastMessage(prefix + "caught a rune!");
     } else if (loot.category() == Category.TREASURE_MAP) {
-      Bukkit.broadcastMessage("[FISHING POOL] " + player.getName() + " found a treasure map!");
+      Bukkit.broadcastMessage(prefix + "found a treasure map!");
     } else if (loot.category() == Category.TREASURE) {
-      Bukkit.broadcastMessage("[FISHING POOL] " + player.getName() + " found an oceanic treasure!");
+      Bukkit.broadcastMessage(prefix + "found an oceanic treasure!");
     }
     return new AwardResult(weight, item);
   }

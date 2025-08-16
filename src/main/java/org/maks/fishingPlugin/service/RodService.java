@@ -183,6 +183,21 @@ public class RodService {
     player.getInventory().addItem(createAdminRod(player));
   }
 
+  /** Convert an admin rod in the player's main hand into a regular rod. */
+  public void convertAdminRod(Player player) {
+    ItemStack rod = player.getInventory().getItemInMainHand();
+    if (!isAdminRod(rod)) {
+      return;
+    }
+    ItemMeta meta = rod.getItemMeta();
+    if (meta != null) {
+      container(meta).remove(adminKey);
+      rod.setItemMeta(meta);
+      player.getInventory().setItemInMainHand(rod);
+    }
+    updatePlayerRod(player, levelService.getLevel(player), levelService.getXp(player));
+  }
+
   /**
    * Check if the given player is the owner of the rod item.
    * If the rod has no owner yet, it becomes owned by the player.
