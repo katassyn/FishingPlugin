@@ -71,13 +71,16 @@ public class QuestMenu implements Listener {
       QuestStage stage = stages.get(i);
       ItemStack item;
       ItemMeta meta;
+      String name = "Quest " + (i + 1);
+      if (!stage.title().isEmpty()) {
+        name += " - " + stage.title();
+      }
       if (i < prog.stage()) {
         item = new ItemStack(Material.EMERALD_BLOCK);
         meta = item.getItemMeta();
         if (meta != null) {
-          meta.displayName(Component.text("Quest " + (i + 1), NamedTextColor.GREEN));
+          meta.displayName(Component.text(name, NamedTextColor.GREEN));
           meta.lore(java.util.List.of(
-              Component.text(stage.title(), NamedTextColor.GRAY),
               objectiveLine(stage),
               Component.text("Completed", NamedTextColor.GREEN)));
           item.setItemMeta(meta);
@@ -87,11 +90,8 @@ public class QuestMenu implements Listener {
         item = new ItemStack(Material.GOLD_BLOCK);
         meta = item.getItemMeta();
         if (meta != null) {
-          meta.displayName(Component.text("Quest " + (i + 1), NamedTextColor.GOLD));
+          meta.displayName(Component.text(name, NamedTextColor.GOLD));
           java.util.List<Component> lore = new java.util.ArrayList<>();
-          if (!stage.title().isEmpty()) {
-            lore.add(Component.text(stage.title(), NamedTextColor.GRAY));
-          }
           lore.add(objectiveLine(stage));
           lore.add(Component.text(
               "Progress: " + prog.count() + "/" + stage.goal(), NamedTextColor.YELLOW));
@@ -105,10 +105,8 @@ public class QuestMenu implements Listener {
         item = new ItemStack(Material.REDSTONE_BLOCK);
         meta = item.getItemMeta();
         if (meta != null) {
-          meta.displayName(Component.text("Quest " + (i + 1), NamedTextColor.RED));
+          meta.displayName(Component.text(name, NamedTextColor.RED));
           meta.lore(java.util.List.of(
-              Component.text(stage.title(), NamedTextColor.GRAY),
-              objectiveLine(stage),
               Component.text("Locked", NamedTextColor.RED)));
           item.setItemMeta(meta);
         }
