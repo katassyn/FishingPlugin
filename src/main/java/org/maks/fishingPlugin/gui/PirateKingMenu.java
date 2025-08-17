@@ -56,6 +56,7 @@ public class PirateKingMenu implements Listener {
     String name = meta != null && meta.hasDisplayName() ? meta.getDisplayName() : "null";
     List<String> lore = meta != null ? meta.getLore() : null;
     boolean unbreakable = meta != null && meta.isUnbreakable();
+
     plugin
         .getLogger()
         .info(
@@ -90,7 +91,6 @@ public class PirateKingMenu implements Listener {
                 + mapService.debugUnidentifiedLore()
                 + " required-nbt=[map_state, map_id]");
   }
-
   /** Open the Pirate King menu for a player. */
   public void open(Player player) {
     Inventory inv = createInventory();
