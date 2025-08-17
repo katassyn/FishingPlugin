@@ -111,7 +111,6 @@ treasure_maps:
           - Infernal_Boss_B
           - Infernal_Boss_C
         spawn_cmd_template: "mm mobs spawn {mob} 1 {world},{x},{y},{z},0,0"
-
         spawn_delay_ticks: 20
       lore_lines:
         - "&cInfernal Lair"

@@ -230,6 +230,7 @@ public class TreasureMapService {
       case KRAKEN -> "Kraken's Lair";
     };
   }
+
   private MapState readState(ItemStack item) {
     ItemMeta meta = item.getItemMeta();
     if (meta == null) return null;

@@ -41,7 +41,6 @@ public class BountyService implements Listener {
   private final Map<UUID, Integer> barTasks = new HashMap<>();
   private final Map<UUID, Integer> timeoutTasks = new HashMap<>();
   private final Map<UUID, Map<String, Integer>> activeMobs = new HashMap<>();
-
   private final Random random = new Random();
 
   private final String msgConfirmStart;
@@ -53,7 +52,6 @@ public class BountyService implements Listener {
   private final String msgWarpFailed;
   private final String msgLairReleased;
   private final String msgSuccess;
-
   private final String titleStart;
   private final String titleStartSub;
   private final String titleTimeout;
@@ -62,7 +60,6 @@ public class BountyService implements Listener {
   private final String titleDeathSub;
   private final String titleSuccess;
   private final String titleSuccessSub;
-
   private final Sound confirmSound;
 
   public BountyService(JavaPlugin plugin, TeleportService teleportService, TreasureMapService mapService,
@@ -99,8 +96,6 @@ public class BountyService implements Listener {
     this.msgWarpFailed = msgSec != null ? msgSec.getString("warp_failed", "") : "";
     this.msgLairReleased = msgSec != null ? msgSec.getString("lair_released", "") : "";
     this.msgSuccess = msgSec != null ? msgSec.getString("success", "") : "";
-
-
     var titleSec = plugin.getConfig().getConfigurationSection("treasure_maps.titles");
     this.titleStart = titleSec != null ? titleSec.getString("start_title", "") : "";
     this.titleStartSub = titleSec != null ? titleSec.getString("start_subtitle", "") : "";
@@ -110,8 +105,6 @@ public class BountyService implements Listener {
     this.titleDeathSub = titleSec != null ? titleSec.getString("death_subtitle", "") : "";
     this.titleSuccess = titleSec != null ? titleSec.getString("success_title", "") : "";
     this.titleSuccessSub = titleSec != null ? titleSec.getString("success_subtitle", "") : "";
-
-
     var effSec = plugin.getConfig().getConfigurationSection("treasure_maps.effects");
     this.confirmSound = parseSound(effSec != null ? effSec.getString("on_confirm_sound") : null);
 
@@ -252,19 +245,19 @@ public class BountyService implements Listener {
       if (spawn.bossPool().isEmpty()) break;
       String mob = spawn.bossPool().get(random.nextInt(spawn.bossPool().size()));
       counts.merge(mob, 1, Integer::sum);
-
       String cmd = spawn.cmdTemplate()
           .replace("{mob}", mob)
           .replace("{world}", loc.getWorld().getName())
           .replace("{x}", String.valueOf(loc.getBlockX()))
           .replace("{y}", String.valueOf(loc.getBlockY()))
           .replace("{z}", String.valueOf(loc.getBlockZ()));
+      plugin.getLogger().info("Executing MythicMobs spawn command: " + cmd);
+
       Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
     }
     if (!counts.isEmpty()) {
       activeMobs.put(player.getUniqueId(), counts);
     }
-
   }
 
   private void timeout(UUID playerId) {
@@ -286,7 +279,6 @@ public class BountyService implements Listener {
         if (!Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "spawn " + p.getName())) {
           p.teleport(p.getWorld().getSpawnLocation());
         }
-
         p.sendMessage(color(message));
         if (title != null && subtitle != null) {
           String lairName = mapService.lairDisplay(lair);
@@ -306,6 +298,7 @@ public class BountyService implements Listener {
   public void onDeath(PlayerDeathEvent e) {
     release(e.getEntity().getUniqueId(), msgDeath, titleDeath, titleDeathSub);
   }
+
   @EventHandler
   public void onMobDeath(EntityDeathEvent e) {
     Player killer = e.getEntity().getKiller();
