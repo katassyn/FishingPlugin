@@ -3,6 +3,7 @@ package org.maks.fishingPlugin.service;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.maks.fishingPlugin.model.Warp;
@@ -31,8 +32,12 @@ public class TeleportService {
 
   public boolean teleport(String key, org.bukkit.entity.Player player) {
     Warp warp = warps.get(key);
-    if (warp == null) return false;
-    warp.teleport(player);
-    return true;
+    if (warp != null) {
+      warp.teleport(player);
+      return true;
+    }
+    // Fallback: attempt to run a generic warp command if no explicit warp is configured
+    String cmd = "warp " + key + " " + player.getName();
+    return Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
   }
 }
