@@ -52,6 +52,11 @@ public class PirateKingMenu implements Listener {
     var state = mapService.getState(item);
     var lair = mapService.getLair(item);
     var id = mapService.getId(item);
+    ItemMeta meta = item.getItemMeta();
+    String name = meta != null && meta.hasDisplayName() ? meta.getDisplayName() : "null";
+    List<String> lore = meta != null ? meta.getLore() : null;
+    boolean unbreakable = meta != null && meta.isUnbreakable();
+
     plugin
         .getLogger()
         .info(
@@ -59,12 +64,33 @@ public class PirateKingMenu implements Listener {
                 + context
                 + " type="
                 + item.getType()
+                + " name="
+                + name
+                + " lore="
+                + lore
+                + " unbreakable="
+                + unbreakable
+
                 + " state="
                 + state
                 + " lair="
                 + lair
                 + " id="
                 + id);
+  }
+
+  private void debugRejection(ItemStack item, String reason) {
+    debugItem(item, "rejected-cursor");
+    plugin
+        .getLogger()
+        .info(
+            "[PirateKingMenu] reason="
+                + reason
+                + " required-name="
+                + mapService.debugUnidentifiedName()
+                + " required-lore="
+                + mapService.debugUnidentifiedLore()
+                + " required-nbt=[map_state, map_id]");
   }
 
 
@@ -263,15 +289,20 @@ public class PirateKingMenu implements Listener {
       debugItem(cursor, "cursor-attempt");
     }
 
-
     // placing item into slot 13
     if (cursor != null && cursor.getType() != Material.AIR) {
-      if (cursor.getAmount() != 1
-          || (!mapService.isUnidentified(cursor)
-              && !mapService.isIdentified(cursor)
-              && !mapService.isAsh(cursor))) {
+      if (cursor.getAmount() != 1) {
         event.setCancelled(true);
-        debugItem(cursor, "rejected-cursor");
+        debugRejection(cursor, "amount=" + cursor.getAmount());
+        return;
+      }
+      if (!mapService.isUnidentified(cursor)
+          && !mapService.isIdentified(cursor)
+          && !mapService.isAsh(cursor)) {
+        var state = mapService.getState(cursor);
+        String reason = state == null ? "missing map_state" : "state=" + state;
+        event.setCancelled(true);
+        debugRejection(cursor, reason);
 
         return;
       }
