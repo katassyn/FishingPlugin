@@ -12,6 +12,7 @@ import org.bukkit.Location;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.Sound;
 import org.bukkit.event.EventHandler;
@@ -171,6 +172,8 @@ public class BountyService implements Listener {
     occupied.put(lair, player.getUniqueId());
     playerLair.put(player.getUniqueId(), lair);
     mapService.markSpent(map);
+    map.setType(Material.AIR);
+    map.setAmount(0);
     player.closeInventory();
     if (!teleportService.teleport(spec.warp(), player)) {
       freeLair(lair);
