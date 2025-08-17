@@ -123,7 +123,6 @@ public class PirateKingMenu implements Listener {
 
   private ItemStack confirmButton() {
     ItemStack item = new ItemStack(Material.EMERALD);
-
     ItemMeta meta = item.getItemMeta();
     if (meta != null) {
       meta.setDisplayName(color(btnConfirm));

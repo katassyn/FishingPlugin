@@ -16,6 +16,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.Sound;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
@@ -39,6 +40,8 @@ public class BountyService implements Listener {
   private final Map<UUID, BossBar> bars = new HashMap<>();
   private final Map<UUID, Integer> barTasks = new HashMap<>();
   private final Map<UUID, Integer> timeoutTasks = new HashMap<>();
+  private final Map<UUID, Map<String, Integer>> activeMobs = new HashMap<>();
+
   private final Random random = new Random();
 
   private final String msgConfirmStart;
@@ -49,12 +52,17 @@ public class BountyService implements Listener {
   private final String msgAshCannotUse;
   private final String msgWarpFailed;
   private final String msgLairReleased;
+  private final String msgSuccess;
+
   private final String titleStart;
   private final String titleStartSub;
   private final String titleTimeout;
   private final String titleTimeoutSub;
   private final String titleDeath;
   private final String titleDeathSub;
+  private final String titleSuccess;
+  private final String titleSuccessSub;
+
   private final Sound confirmSound;
 
   public BountyService(JavaPlugin plugin, TeleportService teleportService, TreasureMapService mapService,
@@ -90,6 +98,8 @@ public class BountyService implements Listener {
     this.msgAshCannotUse = msgSec != null ? msgSec.getString("ash_cannot_use", "") : "";
     this.msgWarpFailed = msgSec != null ? msgSec.getString("warp_failed", "") : "";
     this.msgLairReleased = msgSec != null ? msgSec.getString("lair_released", "") : "";
+    this.msgSuccess = msgSec != null ? msgSec.getString("success", "") : "";
+
 
     var titleSec = plugin.getConfig().getConfigurationSection("treasure_maps.titles");
     this.titleStart = titleSec != null ? titleSec.getString("start_title", "") : "";
@@ -98,6 +108,9 @@ public class BountyService implements Listener {
     this.titleTimeoutSub = titleSec != null ? titleSec.getString("timeout_subtitle", "") : "";
     this.titleDeath = titleSec != null ? titleSec.getString("death_title", "") : "";
     this.titleDeathSub = titleSec != null ? titleSec.getString("death_subtitle", "") : "";
+    this.titleSuccess = titleSec != null ? titleSec.getString("success_title", "") : "";
+    this.titleSuccessSub = titleSec != null ? titleSec.getString("success_subtitle", "") : "";
+
 
     var effSec = plugin.getConfig().getConfigurationSection("treasure_maps.effects");
     this.confirmSound = parseSound(effSec != null ? effSec.getString("on_confirm_sound") : null);
@@ -234,9 +247,12 @@ public class BountyService implements Listener {
 
   private void spawnBosses(Player player, SpawnSpec spawn) {
     Location loc = player.getLocation();
+    Map<String, Integer> counts = new HashMap<>();
     for (int i = 0; i < spawn.count(); i++) {
       if (spawn.bossPool().isEmpty()) break;
       String mob = spawn.bossPool().get(random.nextInt(spawn.bossPool().size()));
+      counts.merge(mob, 1, Integer::sum);
+
       String cmd = spawn.cmdTemplate()
           .replace("{mob}", mob)
           .replace("{world}", loc.getWorld().getName())
@@ -245,10 +261,18 @@ public class BountyService implements Listener {
           .replace("{z}", String.valueOf(loc.getBlockZ()));
       Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
     }
+    if (!counts.isEmpty()) {
+      activeMobs.put(player.getUniqueId(), counts);
+    }
+
   }
 
   private void timeout(UUID playerId) {
     release(playerId, msgTimeout, titleTimeout, titleTimeoutSub);
+  }
+
+  private void success(UUID playerId) {
+    release(playerId, msgSuccess, titleSuccess, titleSuccessSub);
   }
 
   private void release(UUID playerId, String message, String title, String subtitle) {
@@ -256,9 +280,13 @@ public class BountyService implements Listener {
     if (lair != null) {
       freeLair(lair);
       cancelTasks(playerId);
+      activeMobs.remove(playerId);
       Player p = Bukkit.getPlayer(playerId);
       if (p != null && p.isOnline()) {
-        p.teleport(p.getWorld().getSpawnLocation());
+        if (!Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "spawn " + p.getName())) {
+          p.teleport(p.getWorld().getSpawnLocation());
+        }
+
         p.sendMessage(color(message));
         if (title != null && subtitle != null) {
           String lairName = mapService.lairDisplay(lair);
@@ -278,4 +306,24 @@ public class BountyService implements Listener {
   public void onDeath(PlayerDeathEvent e) {
     release(e.getEntity().getUniqueId(), msgDeath, titleDeath, titleDeathSub);
   }
+  @EventHandler
+  public void onMobDeath(EntityDeathEvent e) {
+    Player killer = e.getEntity().getKiller();
+    if (killer == null) return;
+    Map<String, Integer> counts = activeMobs.get(killer.getUniqueId());
+    if (counts == null) return;
+    if (!e.getEntity().hasMetadata("MythicType")) return;
+    String type = e.getEntity().getMetadata("MythicType").get(0).asString();
+    Integer remaining = counts.get(type);
+    if (remaining == null) return;
+    if (remaining <= 1) {
+      counts.remove(type);
+    } else {
+      counts.put(type, remaining - 1);
+    }
+    if (counts.isEmpty()) {
+      success(killer.getUniqueId());
+    }
+  }
+
 }
