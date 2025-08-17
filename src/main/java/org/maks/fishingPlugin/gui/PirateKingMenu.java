@@ -240,7 +240,6 @@ public class PirateKingMenu implements Listener {
         if (map.getType() == Material.AIR || map.getAmount() == 0) {
           inv.setItem(13, null);
         }
-
       } else if (map != null && mapService.isIdentified(map)) {
         if (bountyService.confirm(player, map)) {
           inv.setItem(13, null);

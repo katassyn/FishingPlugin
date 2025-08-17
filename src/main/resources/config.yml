@@ -52,6 +52,18 @@ warps:
     x: 123.5
     y: 64
     z: -210.5
+  - key: infernal_lair
+    type: COMMAND
+    command: "warp infernal_lair %player%"
+  - key: hell_lair
+    type: COMMAND
+    command: "warp hell_lair %player%"
+  - key: blood_lair
+    type: COMMAND
+    command: "warp blood_lair %player%"
+  - key: kraken_lair
+    type: COMMAND
+    command: "warp kraken_lair %player%"
 
 category_weights:
   FISH: 9520
