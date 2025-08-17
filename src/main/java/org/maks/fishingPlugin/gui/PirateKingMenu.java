@@ -242,6 +242,7 @@ public class PirateKingMenu implements Listener {
       } else if (map != null && mapService.isIdentified(map)) {
         if (bountyService.confirm(player, map)) {
           inv.setItem(13, null);
+          player.closeInventory();
         }
       }
       Bukkit.getScheduler().runTask(plugin, () -> refresh(player, inv));

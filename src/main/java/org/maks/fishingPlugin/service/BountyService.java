@@ -17,7 +17,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.Sound;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
@@ -174,7 +173,6 @@ public class BountyService implements Listener {
     mapService.markSpent(map);
     map.setType(Material.AIR);
     map.setAmount(0);
-    player.closeInventory();
     if (!teleportService.teleport(spec.warp(), player)) {
       freeLair(lair);
       playerLair.remove(player.getUniqueId());
@@ -268,7 +266,10 @@ public class BountyService implements Listener {
   }
 
   private void success(UUID playerId) {
-    release(playerId, msgSuccess, titleSuccess, titleSuccessSub);
+    cancelTasks(playerId);
+    activeMobs.remove(playerId);
+    Bukkit.getScheduler().runTaskLater(plugin,
+        () -> release(playerId, msgSuccess, titleSuccess, titleSuccessSub), 300L);
   }
 
   private void release(UUID playerId, String message, String title, String subtitle) {
@@ -303,13 +304,12 @@ public class BountyService implements Listener {
   }
 
   @EventHandler
-  public void onMobDeath(EntityDeathEvent e) {
-    Player killer = e.getEntity().getKiller();
+  public void onMobDeath(io.lumine.mythic.bukkit.events.MythicMobDeathEvent e) {
+    Player killer = e.getKiller();
     if (killer == null) return;
     Map<String, Integer> counts = activeMobs.get(killer.getUniqueId());
     if (counts == null) return;
-    if (!e.getEntity().hasMetadata("MythicType")) return;
-    String type = e.getEntity().getMetadata("MythicType").get(0).asString();
+    String type = e.getMob().getType().getInternalName();
     Integer remaining = counts.get(type);
     if (remaining == null) return;
     if (remaining <= 1) {
