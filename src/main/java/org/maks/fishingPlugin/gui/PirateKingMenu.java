@@ -56,6 +56,7 @@ public class PirateKingMenu implements Listener {
     String name = meta != null && meta.hasDisplayName() ? meta.getDisplayName() : "null";
     List<String> lore = meta != null ? meta.getLore() : null;
     boolean unbreakable = meta != null && meta.isUnbreakable();
+
     plugin
         .getLogger()
         .info(
@@ -69,6 +70,7 @@ public class PirateKingMenu implements Listener {
                 + lore
                 + " unbreakable="
                 + unbreakable
+
                 + " state="
                 + state
                 + " lair="
@@ -90,6 +92,7 @@ public class PirateKingMenu implements Listener {
                 + mapService.debugUnidentifiedLore()
                 + " required-nbt=[map_state, map_id]");
   }
+
 
   /** Open the Pirate King menu for a player. */
   public void open(Player player) {
@@ -173,6 +176,7 @@ public class PirateKingMenu implements Listener {
     for (int i = 0; i < 27; i++) inv.setItem(i, fill);
     inv.setItem(13, null);
     inv.setItem(26, guideItem());
+
     return inv;
   }
 
@@ -182,6 +186,7 @@ public class PirateKingMenu implements Listener {
     inv.setItem(15, fill);
     ItemStack map = inv.getItem(13);
     debugItem(map, "refresh-slot13");
+
     if (map == null || map.getType() == Material.AIR) {
       return;
     }
@@ -298,6 +303,7 @@ public class PirateKingMenu implements Listener {
         String reason = state == null ? "missing map_state" : "state=" + state;
         event.setCancelled(true);
         debugRejection(cursor, reason);
+
         return;
       }
       if (current != null && current.getType() != Material.AIR) {
@@ -324,6 +330,7 @@ public class PirateKingMenu implements Listener {
     ItemStack item = inv.getItem(13);
     if (item != null && item.getType() != Material.AIR) {
       debugItem(item, "close-return");
+
       Player player = (Player) event.getPlayer();
       var leftover = player.getInventory().addItem(item);
       for (ItemStack drop : leftover.values()) {

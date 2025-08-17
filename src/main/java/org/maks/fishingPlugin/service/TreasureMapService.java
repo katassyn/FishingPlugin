@@ -336,5 +336,6 @@ public class TreasureMapService {
   public List<String> debugUnidentifiedLore() {
     return unidentifiedLore;
   }
+
 }
 
