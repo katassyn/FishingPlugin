@@ -128,6 +128,11 @@ public final class FishingPlugin extends JavaPlugin {
             return;
         }
         try {
+            lairLockRepo.releaseAll();
+        } catch (SQLException e) {
+            getLogger().warning("Failed to clear lair locks: " + e.getMessage());
+        }
+        try {
             seedDefaultLoot();
         } catch (SQLException e) {
             getLogger().warning("Failed to seed default loot: " + e.getMessage());
@@ -354,6 +359,13 @@ public final class FishingPlugin extends JavaPlugin {
                 levelService.saveProfile(p);
                 antiCheatService.reset(p.getUniqueId());
             });
+        }
+        if (lairLockRepo != null) {
+            try {
+                lairLockRepo.releaseAll();
+            } catch (SQLException e) {
+                getLogger().warning("Failed to clear lair locks: " + e.getMessage());
+            }
         }
         if (database != null) {
             database.close();
