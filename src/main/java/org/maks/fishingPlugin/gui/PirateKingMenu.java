@@ -90,7 +90,6 @@ public class PirateKingMenu implements Listener {
                 + mapService.debugUnidentifiedLore()
                 + " required-nbt=[map_state, map_id]");
   }
-
   /** Open the Pirate King menu for a player. */
   public void open(Player player) {
     Inventory inv = createInventory();
@@ -232,7 +231,6 @@ public class PirateKingMenu implements Listener {
     Inventory inv = event.getInventory();
     Player player = (Player) event.getWhoClicked();
     int slot = event.getRawSlot();
-
     if (slot == 11) {
       event.setCancelled(true);
       ItemStack map = inv.getItem(13);
@@ -333,7 +331,6 @@ public class PirateKingMenu implements Listener {
       Bukkit.getScheduler().runTask(plugin, () -> refresh(player, inv));
       return;
     }
-
     // picking up existing item is fine; just refresh afterwards
     Bukkit.getScheduler().runTask(plugin, () -> refresh(player, inv));
   }

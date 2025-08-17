@@ -111,6 +111,7 @@ treasure_maps:
           - Infernal_Boss_B
           - Infernal_Boss_C
         spawn_cmd_template: "mm mobs spawn {mob} 1 {world},{x},{y},{z},0,0"
+
         spawn_delay_ticks: 20
       lore_lines:
         - "&cInfernal Lair"
@@ -126,6 +127,7 @@ treasure_maps:
           - Hell_Boss_B
           - Hell_Boss_C
         spawn_cmd_template: "mm mobs spawn {mob} 1 {world},{x},{y},{z},0,0"
+
         spawn_delay_ticks: 20
       lore_lines:
         - "&4Hell Lair"
@@ -141,6 +143,7 @@ treasure_maps:
           - Blood_Boss_B
           - Blood_Boss_C
         spawn_cmd_template: "mm mobs spawn {mob} 1 {world},{x},{y},{z},0,0"
+
         spawn_delay_ticks: 20
       lore_lines:
         - "&cBlood Lair"
@@ -154,6 +157,7 @@ treasure_maps:
         boss_pool:
           - Kraken
         spawn_cmd_template: "mm mobs spawn {mob} 1 {world},{x},{y},{z},0,0"
+
         spawn_delay_ticks: 20
       lore_lines:
         - "&bKraken's Lair"
@@ -184,6 +188,7 @@ treasure_maps:
     warp_failed: "&cTeleport failed. Try again."
     lair_released: "&7The lair has been released."
     success: "&aBounty complete! Returning to spawn."
+
   buttons:
     identify: "&6Identify (&e${cost}&6)"
     confirm_bounty: "&aConfirm Bounty"
@@ -198,3 +203,4 @@ treasure_maps:
     death_subtitle: "&7You were slain."
     success_title: "&6Bounty Complete!"
     success_subtitle: "&7Returning to spawn…"
+
