@@ -288,7 +288,6 @@ public class TreasureMapService {
     if (state != null) return state;
     return inferAndApplyState(item);
   }
-
   public Lair getLair(ItemStack item) {
     ItemMeta meta = item.getItemMeta();
     if (meta == null) return null;

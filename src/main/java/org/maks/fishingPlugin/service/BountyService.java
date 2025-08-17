@@ -96,7 +96,6 @@ public class BountyService implements Listener {
     this.msgWarpFailed = msgSec != null ? msgSec.getString("warp_failed", "") : "";
     this.msgLairReleased = msgSec != null ? msgSec.getString("lair_released", "") : "";
     this.msgSuccess = msgSec != null ? msgSec.getString("success", "") : "";
-
     var titleSec = plugin.getConfig().getConfigurationSection("treasure_maps.titles");
     this.titleStart = titleSec != null ? titleSec.getString("start_title", "") : "";
     this.titleStartSub = titleSec != null ? titleSec.getString("start_subtitle", "") : "";
@@ -106,7 +105,6 @@ public class BountyService implements Listener {
     this.titleDeathSub = titleSec != null ? titleSec.getString("death_subtitle", "") : "";
     this.titleSuccess = titleSec != null ? titleSec.getString("success_title", "") : "";
     this.titleSuccessSub = titleSec != null ? titleSec.getString("success_subtitle", "") : "";
-
     var effSec = plugin.getConfig().getConfigurationSection("treasure_maps.effects");
     this.confirmSound = parseSound(effSec != null ? effSec.getString("on_confirm_sound") : null);
 
@@ -254,6 +252,7 @@ public class BountyService implements Listener {
           .replace("{y}", String.valueOf(loc.getBlockY()))
           .replace("{z}", String.valueOf(loc.getBlockZ()));
       plugin.getLogger().info("Executing MythicMobs spawn command: " + cmd);
+
       Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
     }
     if (!counts.isEmpty()) {
@@ -319,4 +318,5 @@ public class BountyService implements Listener {
       success(killer.getUniqueId());
     }
   }
+
 }
