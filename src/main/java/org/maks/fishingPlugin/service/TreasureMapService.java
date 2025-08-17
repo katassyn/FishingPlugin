@@ -46,7 +46,6 @@ public class TreasureMapService {
   private final List<String> ashLore;
   private final String identifiedNameFormat;
   private final String identifiedLoreHeader;
-  private final String identifiedTradeNote;
   private final Map<Lair, List<String>> lairLore = new EnumMap<>(Lair.class);
   private final String msgNotEnoughMoney;
   private final String msgIdentifySuccess;
@@ -93,7 +92,6 @@ public class TreasureMapService {
     this.ashLore = items != null ? items.getStringList("ash_lore") : List.of();
     this.identifiedNameFormat = items != null ? items.getString("identified_name_format", "{lair} Map") : "{lair} Map";
     this.identifiedLoreHeader = items != null ? items.getString("identified_lore_header", "-") : "-";
-    this.identifiedTradeNote = items != null ? items.getString("identified_trade_note", "") : "";
 
     ConfigurationSection lairSec = sec.getConfigurationSection("lairs");
     if (lairSec != null) {
@@ -203,7 +201,6 @@ public class TreasureMapService {
     lore.add(color(identifiedLoreHeader));
     List<String> lines = lairLore.getOrDefault(lair, List.of());
     for (String line : lines) lore.add(color(line));
-    if (!identifiedTradeNote.isEmpty()) lore.add(color(identifiedTradeNote));
     meta.setLore(lore);
     PersistentDataContainer pdc = meta.getPersistentDataContainer();
     pdc.set(stateKey, PersistentDataType.STRING, MapState.IDENTIFIED.name());
@@ -276,7 +273,6 @@ public class TreasureMapService {
         List<String> lore = new ArrayList<>();
         lore.add(identifiedLoreHeader);
         lore.addAll(lairLore.getOrDefault(l, List.of()));
-        if (!identifiedTradeNote.isEmpty()) lore.add(identifiedTradeNote);
         if (loreMatches(meta.getLore(), lore)) {
           applyIdentified(item, l);
           return MapState.IDENTIFIED;
@@ -344,7 +340,7 @@ public class TreasureMapService {
     economy.withdrawPlayer(player, identifyCost);
     Lair result = rollLair();
     if (result == null) {
-      applyAsh(item);
+      item.setType(Material.AIR);
       player.sendMessage(color(msgIdentifyEmpty));
       if (identifyEmptySound != null)
         player.playSound(player.getLocation(), identifyEmptySound, 1f, 1f);

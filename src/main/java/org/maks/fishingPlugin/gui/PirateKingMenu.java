@@ -56,7 +56,6 @@ public class PirateKingMenu implements Listener {
     String name = meta != null && meta.hasDisplayName() ? meta.getDisplayName() : "null";
     List<String> lore = meta != null ? meta.getLore() : null;
     boolean unbreakable = meta != null && meta.isUnbreakable();
-
     plugin
         .getLogger()
         .info(
@@ -123,7 +122,8 @@ public class PirateKingMenu implements Listener {
   }
 
   private ItemStack confirmButton() {
-    ItemStack item = new ItemStack(Material.LIME_DYE);
+    ItemStack item = new ItemStack(Material.EMERALD);
+
     ItemMeta meta = item.getItemMeta();
     if (meta != null) {
       meta.setDisplayName(color(btnConfirm));
@@ -197,19 +197,16 @@ public class PirateKingMenu implements Listener {
       return;
     }
     if (map.getAmount() > 1) {
-      inv.setItem(13, null);
-      var leftover = player.getInventory().addItem(map);
+      ItemStack rest = map.clone();
+      rest.setAmount(map.getAmount() - 1);
+      map.setAmount(1);
+      var leftover = player.getInventory().addItem(rest);
       for (ItemStack drop : leftover.values()) {
         player.getWorld().dropItem(player.getLocation(), drop);
       }
-      return;
     }
     if (mapService.isAsh(map)) {
       inv.setItem(13, null);
-      var leftover = player.getInventory().addItem(map);
-      for (ItemStack drop : leftover.values()) {
-        player.getWorld().dropItem(player.getLocation(), drop);
-      }
       player.sendMessage(bountyService.ashMessage());
       return;
     }
@@ -235,18 +232,15 @@ public class PirateKingMenu implements Listener {
     Inventory inv = event.getInventory();
     Player player = (Player) event.getWhoClicked();
     int slot = event.getRawSlot();
-
-    // disallow shift-clicking to avoid bypassing slot checks
-    if (event.isShiftClick()) {
-      event.setCancelled(true);
-      return;
-    }
-
     if (slot == 11) {
       event.setCancelled(true);
       ItemStack map = inv.getItem(13);
       if (map != null && mapService.isUnidentified(map)) {
         mapService.identify(player, map);
+        if (map.getType() == Material.AIR || map.getAmount() == 0) {
+          inv.setItem(13, null);
+        }
+
       } else if (map != null && mapService.isIdentified(map)) {
         if (bountyService.confirm(player, map)) {
           inv.setItem(13, null);
@@ -267,8 +261,32 @@ public class PirateKingMenu implements Listener {
       return;
     }
 
-    // clicks in player inventory are allowed
+    // handle shift-clicking from player inventory into slot 13
     if (slot >= inv.getSize()) {
+      if (event.isShiftClick()) {
+        ItemStack stack = event.getCurrentItem();
+        if (stack == null || stack.getType() == Material.AIR) return;
+        if (!mapService.isUnidentified(stack)
+            && !mapService.isIdentified(stack)
+            && !mapService.isAsh(stack)) {
+          event.setCancelled(true);
+          return;
+        }
+        if (mapService.isAsh(stack)) {
+          event.setCancelled(true);
+          stack.setAmount(stack.getAmount() - 1);
+          player.sendMessage(bountyService.ashMessage());
+          return;
+        }
+        if (inv.getItem(13) == null || inv.getItem(13).getType() == Material.AIR) {
+          ItemStack one = stack.clone();
+          one.setAmount(1);
+          inv.setItem(13, one);
+          stack.setAmount(stack.getAmount() - 1);
+          Bukkit.getScheduler().runTask(plugin, () -> refresh(player, inv));
+        }
+        event.setCancelled(true);
+      }
       return;
     }
 
@@ -286,11 +304,6 @@ public class PirateKingMenu implements Listener {
 
     // placing item into slot 13
     if (cursor != null && cursor.getType() != Material.AIR) {
-      if (cursor.getAmount() != 1) {
-        event.setCancelled(true);
-        debugRejection(cursor, "amount=" + cursor.getAmount());
-        return;
-      }
       if (!mapService.isUnidentified(cursor)
           && !mapService.isIdentified(cursor)
           && !mapService.isAsh(cursor)) {
@@ -306,6 +319,20 @@ public class PirateKingMenu implements Listener {
       }
     }
 
+    // handle shift-clicking map out of slot 13
+    if (event.isShiftClick() && slot == 13) {
+      event.setCancelled(true);
+      ItemStack map = inv.getItem(13);
+      if (map != null && map.getType() != Material.AIR) {
+        inv.setItem(13, null);
+        var leftover = player.getInventory().addItem(map);
+        for (ItemStack drop : leftover.values()) {
+          player.getWorld().dropItem(player.getLocation(), drop);
+        }
+      }
+      Bukkit.getScheduler().runTask(plugin, () -> refresh(player, inv));
+      return;
+    }
     // picking up existing item is fine; just refresh afterwards
     Bukkit.getScheduler().runTask(plugin, () -> refresh(player, inv));
   }

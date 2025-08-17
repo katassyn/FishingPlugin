@@ -157,8 +157,7 @@ treasure_maps:
       - "&7The ink fades into nothing."
       - "&8The sea keeps its secrets."
     identified_name_format: "&e{lair} Treasure Map"
-    identified_lore_header: "&8— — — — — — — — — —"
-    identified_trade_note: "&7This map can be traded."
+    identified_lore_header: "&8--------------------"
   messages:
     not_enough_money: "&cYou need &e${cost}&c to identify this map."
     identify_success: "&aThe map points to: &e{lair}&a!"
