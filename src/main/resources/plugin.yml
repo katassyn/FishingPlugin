@@ -24,6 +24,10 @@ commands:
     description: View fishing quests
     usage: /fishing_quests
     permission: fishing.use
+  pirate_king:
+    description: Access Pirate King bounty menu
+    usage: /pirate_king
+    permission: fishing.pirateking
 permissions:
   fishing.admin:
     description: Allows editing loot and quests
@@ -34,3 +38,6 @@ permissions:
   fishing.use:
     description: Allows accessing fishing features
     default: true
+  fishing.pirateking:
+    description: Allows using Pirate King features
+    default: false
