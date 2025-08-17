@@ -52,6 +52,18 @@ warps:
     x: 123.5
     y: 64
     z: -210.5
+  - key: infernal_lair
+    type: COMMAND
+    command: "warp infernal_lair %player%"
+  - key: hell_lair
+    type: COMMAND
+    command: "warp hell_lair %player%"
+  - key: blood_lair
+    type: COMMAND
+    command: "warp blood_lair %player%"
+  - key: kraken_lair
+    type: COMMAND
+    command: "warp kraken_lair %player%"
 
 category_weights:
   FISH: 9520
@@ -76,3 +88,113 @@ category_scaling:
   TREASURE:
     mode: EXP
     beta: 0.0040
+treasure_maps:
+  identify_cost: 5000000
+  outcomes:
+    EMPTY: 70.0
+    INFERNAL: 15.0
+    HELL: 7.5
+    BLOOD: 5.0
+    KRAKEN: 2.5
+  effects:
+    on_identify_success_sound: ENTITY_EXPERIENCE_ORB_PICKUP
+    on_identify_empty_sound: BLOCK_FIRE_EXTINGUISH
+    on_confirm_sound: UI_TOAST_CHALLENGE_COMPLETE
+  lairs:
+    INFERNAL:
+      warp: infernal_lair
+      time_limit_seconds: 600
+      spawn:
+        count: 3
+        boss_pool:
+          - Infernal_Boss_A
+          - Infernal_Boss_B
+          - Infernal_Boss_C
+        spawn_cmd_template: "mm mobs spawn {mob} 1 {world},{x},{y},{z},0,0"
+        spawn_delay_ticks: 20
+      lore_lines:
+        - "&cInfernal Lair"
+        - "&7A gateway bathed in embers and ash."
+        - "&7Face three horrors from the inferno."
+    HELL:
+      warp: hell_lair
+      time_limit_seconds: 600
+      spawn:
+        count: 3
+        boss_pool:
+          - Hell_Boss_A
+          - Hell_Boss_B
+          - Hell_Boss_C
+        spawn_cmd_template: "mm mobs spawn {mob} 1 {world},{x},{y},{z},0,0"
+        spawn_delay_ticks: 20
+      lore_lines:
+        - "&4Hell Lair"
+        - "&7Sulfur, screams, and searing chains."
+        - "&7Three fiends await."
+    BLOOD:
+      warp: blood_lair
+      time_limit_seconds: 600
+      spawn:
+        count: 3
+        boss_pool:
+          - Blood_Boss_A
+          - Blood_Boss_B
+          - Blood_Boss_C
+        spawn_cmd_template: "mm mobs spawn {mob} 1 {world},{x},{y},{z},0,0"
+        spawn_delay_ticks: 20
+      lore_lines:
+        - "&cBlood Lair"
+        - "&7A sacrificial pit slick with crimson rites."
+        - "&7Three aberrations stir."
+    KRAKEN:
+      warp: kraken_lair
+      time_limit_seconds: 600
+      spawn:
+        count: 1
+        boss_pool:
+          - Kraken
+        spawn_cmd_template: "mm mobs spawn {mob} 1 {world},{x},{y},{z},0,0"
+        spawn_delay_ticks: 20
+      lore_lines:
+        - "&bKraken's Lair"
+        - "&7The sea holds its breath. The abyss watches back."
+        - "&7One leviathan. One chance."
+  items:
+    unidentified_name: "&aUnidentified Treasure Map"
+    unidentified_lore:
+      - "&8&oThis map might lead to &bhidden treasure&8&o..."
+      - "&8&oDeliver it to the &bPirate King &8&ofor identification."
+    ash_name: "&8Ash Map"
+    ash_lore:
+      - "&7The ink fades into nothing."
+      - "&8The sea keeps its secrets."
+    identified_name_format: "&e{lair} Treasure Map"
+    identified_lore_header: "&8--------------------"
+  messages:
+    not_enough_money: "&cYou need &e${cost}&c to identify this map."
+    identify_success: "&aThe map points to: &e{lair}&a!"
+    identify_empty: "&7The map turns to ash in your hands."
+    lair_occupied: "&cThat lair is currently occupied. Please wait."
+    confirm_start: "&aBounty started: &e{lair}&a. You have &e10:00&a!"
+    discard: "&7Map returned to your inventory."
+    timeout: "&eTime's up! You are returned to spawn."
+    death: "&cYou were slain during the bounty."
+    ash_cannot_use: "&7Ash maps cannot be used."
+    inserted_identified: "&7Identified map detected. Choose: &aConfirm Bounty &7or &7Discard&7."
+    warp_failed: "&cTeleport failed. Try again."
+    lair_released: "&7The lair has been released."
+    success: "&aBounty complete! Returning to spawn."
+  buttons:
+    identify: "&6Identify (&e${cost}&6)"
+    confirm_bounty: "&aConfirm Bounty"
+    discard: "&7Discard"
+    occupied: "&cOccupied"
+  titles:
+    start_title: "&aBounty Begun!"
+    start_subtitle: "&e{lair} &7— 10:00 on the clock"
+    timeout_title: "&eTime's Up!"
+    timeout_subtitle: "&7Returning to spawn…"
+    death_title: "&cBounty Failed"
+    death_subtitle: "&7You were slain."
+    success_title: "&6Bounty Complete!"
+    success_subtitle: "&7Returning to spawn…"
