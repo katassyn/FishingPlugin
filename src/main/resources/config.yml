@@ -151,7 +151,7 @@ treasure_maps:
     unidentified_name: "&aUnidentified Treasure Map"
     unidentified_lore:
       - "&8&oThis map might lead to &bhidden treasure&8&o..."
-      - "&8&oBring it to the &bPirate King &8&ofor identification."
+      - "&8&oDeliver it to the &bPirate King &8&ofor identification."
     ash_name: "&8Ash Map"
     ash_lore:
       - "&7The ink fades into nothing."

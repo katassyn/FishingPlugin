@@ -233,8 +233,7 @@ public class TreasureMapService {
       case KRAKEN -> "Kraken's Lair";
     };
   }
-
-  public MapState getState(ItemStack item) {
+  private MapState readState(ItemStack item) {
     ItemMeta meta = item.getItemMeta();
     if (meta == null) return null;
     String state = meta.getPersistentDataContainer().get(stateKey, PersistentDataType.STRING);
@@ -246,6 +245,52 @@ public class TreasureMapService {
     }
   }
 
+  private boolean loreMatches(List<String> actual, List<String> expected) {
+    if (actual == null || actual.size() < expected.size()) return false;
+    for (int i = 0; i < expected.size(); i++) {
+      String a = ChatColor.stripColor(actual.get(i));
+      String e = ChatColor.stripColor(color(expected.get(i)));
+      if (!a.equals(e)) return false;
+    }
+    return true;
+  }
+
+  private MapState inferAndApplyState(ItemStack item) {
+    ItemMeta meta = item.getItemMeta();
+    if (meta == null || !meta.hasDisplayName()) return null;
+    String name = ChatColor.stripColor(meta.getDisplayName());
+    if (ChatColor.stripColor(color(unidentifiedName)).equals(name)
+        && loreMatches(meta.getLore(), unidentifiedLore)) {
+      applyUnidentified(item);
+      return MapState.UNIDENTIFIED;
+    }
+    if (ChatColor.stripColor(color(ashName)).equals(name)
+        && loreMatches(meta.getLore(), ashLore)) {
+      applyAsh(item);
+      return MapState.ASH;
+    }
+    for (Lair l : Lair.values()) {
+      String expectedName =
+          ChatColor.stripColor(color(identifiedNameFormat.replace("{lair}", lairDisplay(l))));
+      if (expectedName.equals(name)) {
+        List<String> lore = new ArrayList<>();
+        lore.add(identifiedLoreHeader);
+        lore.addAll(lairLore.getOrDefault(l, List.of()));
+        if (!identifiedTradeNote.isEmpty()) lore.add(identifiedTradeNote);
+        if (loreMatches(meta.getLore(), lore)) {
+          applyIdentified(item, l);
+          return MapState.IDENTIFIED;
+        }
+      }
+    }
+    return null;
+  }
+
+  public MapState getState(ItemStack item) {
+    MapState state = readState(item);
+    if (state != null) return state;
+    return inferAndApplyState(item);
+  }
   public Lair getLair(ItemStack item) {
     ItemMeta meta = item.getItemMeta();
     if (meta == null) return null;
@@ -336,6 +381,5 @@ public class TreasureMapService {
   public List<String> debugUnidentifiedLore() {
     return unidentifiedLore;
   }
-
 }
 
