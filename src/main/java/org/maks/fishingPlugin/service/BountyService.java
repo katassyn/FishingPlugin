@@ -305,23 +305,28 @@ public class BountyService implements Listener {
 
   @EventHandler
   public void onMobDeath(io.lumine.mythic.bukkit.events.MythicMobDeathEvent e) {
-    Player killer = e.getEntity().getKiller();
-    if (killer == null) {
+    var killerLE = e.getKiller();            // LivingEntity albo null
+    if (!(killerLE instanceof Player killer)) {
       return;
     }
+
     Map<String, Integer> counts = activeMobs.get(killer.getUniqueId());
     if (counts == null) return;
-    String type = e.getMob().getType().getInternalName();
+
+    String type = e.getMobType().getInternalName(); // albo e.getMob().getType().getInternalName()
     Integer remaining = counts.get(type);
     if (remaining == null) return;
+
     if (remaining <= 1) {
       counts.remove(type);
     } else {
       counts.put(type, remaining - 1);
     }
+
     if (counts.isEmpty()) {
       success(killer.getUniqueId());
     }
   }
+
 
 }
