@@ -67,6 +67,10 @@
             <id>sonatype</id>
             <url>https://oss.sonatype.org/content/groups/public/</url>
         </repository>
+        <repository>
+            <id>mythicmobs-repo</id>
+            <url>https://mvn.lumine.io/repository/maven-public/</url>
+        </repository>
     </repositories>
 
         <dependencies>
@@ -102,6 +106,12 @@
                 <groupId>com.mysql</groupId>
                 <artifactId>mysql-connector-j</artifactId>
                 <version>8.0.33</version>
+            </dependency>
+            <dependency>
+                <groupId>io.lumine</groupId>
+                <artifactId>Mythic-Dist</artifactId>
+                <version>5.5.1</version>
+                <scope>provided</scope>
             </dependency>
         </dependencies>
   </project>
