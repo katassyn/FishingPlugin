@@ -201,5 +201,5 @@ treasure_maps:
     death_title: "&cBounty Failed"
     death_subtitle: "&7You were slain."
     success_title: "&6Bounty Complete!"
-    success_subtitle: "&7Returning to spawn…"
+    success_subtitle: "&7Returning to spawn in {time}s"
 

@@ -27,6 +27,8 @@ import org.bukkit.plugin.java.JavaPlugin;
  */
 public class BountyService implements Listener {
 
+  private static final int SUCCESS_COUNTDOWN_SECONDS = 15;
+
   public record SpawnSpec(int count, List<String> bossPool, String cmdTemplate, int delayTicks) {}
   public record LairSpec(String warp, int timeLimitSec, SpawnSpec spawn) {}
 
@@ -268,8 +270,28 @@ public class BountyService implements Listener {
   private void success(UUID playerId) {
     cancelTasks(playerId);
     activeMobs.remove(playerId);
-    Bukkit.getScheduler().runTaskLater(plugin,
-        () -> release(playerId, msgSuccess, titleSuccess, titleSuccessSub), 300L);
+    Player p = Bukkit.getPlayer(playerId);
+    if (p == null || !p.isOnline()) {
+      Bukkit.getScheduler().runTask(plugin, () -> release(playerId, msgSuccess, null, null));
+      return;
+    }
+
+    TreasureMapService.Lair lair = playerLair.get(playerId);
+    String lairName = lair != null ? mapService.lairDisplay(lair) : "";
+    final int[] remaining = {SUCCESS_COUNTDOWN_SECONDS};
+    final int[] taskId = new int[1];
+    taskId[0] = Bukkit.getScheduler().scheduleSyncRepeatingTask(plugin, () -> {
+      p.sendTitle(color(titleSuccess.replace("{lair}", lairName)),
+          color(titleSuccessSub.replace("{lair}", lairName)
+              .replace("{time}", String.valueOf(remaining[0]))), 0, 20, 0);
+      remaining[0]--;
+      if (remaining[0] < 0) {
+        Bukkit.getScheduler().cancelTask(taskId[0]);
+        timeoutTasks.remove(playerId);
+        release(playerId, msgSuccess, null, null);
+      }
+    }, 0L, 20L);
+    timeoutTasks.put(playerId, taskId[0]);
   }
 
   private void release(UUID playerId, String message, String title, String subtitle) {
