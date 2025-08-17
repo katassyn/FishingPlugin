@@ -58,6 +58,14 @@ public class LairLockRepo {
     }
   }
 
+  /** Release all lair locks. */
+  public void releaseAll() throws SQLException {
+    String sql = "DELETE FROM fishing_lair_lock";
+    try (Connection con = dataSource.getConnection(); Statement st = con.createStatement()) {
+      st.executeUpdate(sql);
+    }
+  }
+
   /** Remove locks older than cutoffMillis epoch. */
   public int cleanupOlderThan(long cutoffMillis) throws SQLException {
     String sql = "DELETE FROM fishing_lair_lock WHERE started_at < ?";
