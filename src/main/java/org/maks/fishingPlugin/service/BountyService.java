@@ -1,10 +1,12 @@
 package org.maks.fishingPlugin.service;
 
 import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 import java.util.UUID;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -47,6 +49,9 @@ public class BountyService implements Listener {
   private final Map<UUID, Integer> timeoutTasks = new HashMap<>();
   private final Map<UUID, Map<String, Integer>> activeMobs = new HashMap<>();
   private final Random random = new Random();
+  private static final Set<TreasureMapService.Lair> SHARED_LAIR_GROUP =
+      EnumSet.of(TreasureMapService.Lair.INFERNAL, TreasureMapService.Lair.HELL,
+          TreasureMapService.Lair.BLOOD);
 
   private final String msgConfirmStart;
   private final String msgDiscard;
@@ -115,10 +120,10 @@ public class BountyService implements Listener {
     this.confirmSound = parseSound(effSec != null ? effSec.getString("on_confirm_sound") : null);
 
     try {
-      long cutoff = System.currentTimeMillis() - 15 * 60_000L;
+      long cutoff = System.currentTimeMillis() - 5 * 60_000L;
       lockRepo.cleanupOlderThan(cutoff);
       for (var lock : lockRepo.findAll()) {
-        occupied.put(lock.lair(), lock.playerUuid());
+        occupy(lock.lair(), lock.playerUuid());
         playerLair.put(lock.playerUuid(), lock.lair());
       }
     } catch (Exception e) {
@@ -144,7 +149,23 @@ public class BountyService implements Listener {
   }
 
   public boolean isOccupied(TreasureMapService.Lair lair) {
+    if (SHARED_LAIR_GROUP.contains(lair)) {
+      for (TreasureMapService.Lair l : SHARED_LAIR_GROUP) {
+        if (occupied.containsKey(l)) return true;
+      }
+      return false;
+    }
     return occupied.containsKey(lair);
+  }
+
+  private void occupy(TreasureMapService.Lair lair, UUID playerId) {
+    if (SHARED_LAIR_GROUP.contains(lair)) {
+      for (TreasureMapService.Lair l : SHARED_LAIR_GROUP) {
+        occupied.put(l, playerId);
+      }
+    } else {
+      occupied.put(lair, playerId);
+    }
   }
 
   public void discard(Player player, ItemStack map) {
@@ -174,7 +195,7 @@ public class BountyService implements Listener {
       freeLair(lair);
       return false;
     }
-    occupied.put(lair, player.getUniqueId());
+    occupy(lair, player.getUniqueId());
     playerLair.put(player.getUniqueId(), lair);
     mapService.markSpent(map);
     map.setType(Material.AIR);
@@ -217,6 +238,23 @@ public class BountyService implements Listener {
 
   private boolean lockAttempt(TreasureMapService.Lair lair, UUID player, UUID mapId) {
     try {
+      if (SHARED_LAIR_GROUP.contains(lair)) {
+        Set<TreasureMapService.Lair> locked = EnumSet.noneOf(TreasureMapService.Lair.class);
+        for (TreasureMapService.Lair l : SHARED_LAIR_GROUP) {
+          if (lockRepo.tryLock(l, player, mapId)) {
+            locked.add(l);
+          } else {
+            for (TreasureMapService.Lair rl : locked) {
+              try {
+                lockRepo.release(rl);
+              } catch (Exception ignored) {
+              }
+            }
+            return false;
+          }
+        }
+        return true;
+      }
       return lockRepo.tryLock(lair, player, mapId);
     } catch (Exception e) {
       plugin.getLogger().warning("Failed to lock lair: " + e.getMessage());
@@ -225,11 +263,22 @@ public class BountyService implements Listener {
   }
 
   private void freeLair(TreasureMapService.Lair lair) {
-    occupied.remove(lair);
-    try {
-      lockRepo.release(lair);
-    } catch (Exception e) {
-      plugin.getLogger().warning("Failed to release lair: " + e.getMessage());
+    if (SHARED_LAIR_GROUP.contains(lair)) {
+      for (TreasureMapService.Lair l : SHARED_LAIR_GROUP) {
+        occupied.remove(l);
+        try {
+          lockRepo.release(l);
+        } catch (Exception e) {
+          plugin.getLogger().warning("Failed to release lair: " + e.getMessage());
+        }
+      }
+    } else {
+      occupied.remove(lair);
+      try {
+        lockRepo.release(lair);
+      } catch (Exception e) {
+        plugin.getLogger().warning("Failed to release lair: " + e.getMessage());
+      }
     }
     if (!msgLairReleased.isEmpty()) {
       Bukkit.broadcastMessage(color(msgLairReleased.replace("{lair}", mapService.lairDisplay(lair))));

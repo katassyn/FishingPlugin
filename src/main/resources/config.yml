@@ -103,7 +103,7 @@ treasure_maps:
   lairs:
     INFERNAL:
       warp: infernal_lair
-      time_limit_seconds: 600
+      time_limit_seconds: 300
       spawn:
         count: 3
         boss_pool:
@@ -118,7 +118,7 @@ treasure_maps:
         - "&7Face three horrors from the inferno."
     HELL:
       warp: hell_lair
-      time_limit_seconds: 600
+      time_limit_seconds: 300
       spawn:
         count: 3
         boss_pool:
@@ -134,7 +134,7 @@ treasure_maps:
         - "&7Three fiends await."
     BLOOD:
       warp: blood_lair
-      time_limit_seconds: 600
+      time_limit_seconds: 300
       spawn:
         count: 3
         boss_pool:
@@ -150,7 +150,7 @@ treasure_maps:
         - "&7Three aberrations stir."
     KRAKEN:
       warp: kraken_lair
-      time_limit_seconds: 600
+      time_limit_seconds: 300
       spawn:
         count: 1
         boss_pool:
@@ -178,7 +178,7 @@ treasure_maps:
     identify_success: "&aThe map points to: &e{lair}&a!"
     identify_empty: "&7The map turns to ash in your hands."
     lair_occupied: "&cThat lair is currently occupied. Please wait."
-    confirm_start: "&aBounty started: &e{lair}&a. You have &e10:00&a!"
+    confirm_start: "&aBounty started: &e{lair}&a. You have &e5:00&a!"
     discard: "&7Map returned to your inventory."
     timeout: "&eTime's up! You are returned to spawn."
     death: "&cYou were slain during the bounty."
@@ -195,7 +195,7 @@ treasure_maps:
     occupied: "&cOccupied"
   titles:
     start_title: "&aBounty Begun!"
-    start_subtitle: "&e{lair} &7— 10:00 on the clock"
+    start_subtitle: "&e{lair} &7— 5:00 on the clock"
     timeout_title: "&eTime's Up!"
     timeout_subtitle: "&7Returning to spawn…"
     death_title: "&cBounty Failed"
