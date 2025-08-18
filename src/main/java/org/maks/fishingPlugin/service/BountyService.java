@@ -22,6 +22,8 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import org.maks.fishingPlugin.service.BountyRewardService;
+
 /**
  * Handles bounty confirmations and lair instances.
  */
@@ -36,6 +38,7 @@ public class BountyService implements Listener {
   private final TeleportService teleportService;
   private final TreasureMapService mapService;
   private final org.maks.fishingPlugin.data.LairLockRepo lockRepo;
+  private final BountyRewardService rewardService;
   private final Map<TreasureMapService.Lair, LairSpec> lairSpecs = new EnumMap<>(TreasureMapService.Lair.class);
   private final Map<TreasureMapService.Lair, UUID> occupied = new EnumMap<>(TreasureMapService.Lair.class);
   private final Map<UUID, TreasureMapService.Lair> playerLair = new HashMap<>();
@@ -65,11 +68,12 @@ public class BountyService implements Listener {
   private final Sound confirmSound;
 
   public BountyService(JavaPlugin plugin, TeleportService teleportService, TreasureMapService mapService,
-      org.maks.fishingPlugin.data.LairLockRepo lockRepo) {
+      org.maks.fishingPlugin.data.LairLockRepo lockRepo, BountyRewardService rewardService) {
     this.plugin = plugin;
     this.teleportService = teleportService;
     this.mapService = mapService;
     this.lockRepo = lockRepo;
+    this.rewardService = rewardService;
 
     var lairSec = plugin.getConfig().getConfigurationSection("treasure_maps.lairs");
     if (lairSec != null) {
@@ -277,6 +281,9 @@ public class BountyService implements Listener {
 
     TreasureMapService.Lair lair = playerLair.get(playerId);
     String lairName = lair != null ? mapService.lairDisplay(lair) : "";
+    if (lair != null) {
+      rewardService.give(p, lair);
+    }
     final int[] remaining = {SUCCESS_COUNTDOWN_SECONDS};
     final int[] taskId = new int[1];
     taskId[0] = Bukkit.getScheduler().scheduleSyncRepeatingTask(plugin, () -> {
