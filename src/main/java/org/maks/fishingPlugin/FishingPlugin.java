@@ -46,6 +46,7 @@ import org.maks.fishingPlugin.gui.QuestMenu;
 import org.maks.fishingPlugin.gui.AdminLootEditorMenu;
 import org.maks.fishingPlugin.gui.AdminQuestEditorMenu;
 import org.maks.fishingPlugin.gui.PirateKingMenu;
+import org.maks.fishingPlugin.gui.AdminBountyRewardMenu;
 import org.maks.fishingPlugin.command.QuickSellCommand;
 import org.maks.fishingPlugin.command.GiveRodCommand;
 import org.maks.fishingPlugin.command.AdminRodCommand;
@@ -53,6 +54,8 @@ import org.maks.fishingPlugin.command.QuestCommand;
 import org.maks.fishingPlugin.command.PirateKingCommand;
 import org.maks.fishingPlugin.service.TreasureMapService;
 import org.maks.fishingPlugin.service.BountyService;
+import org.maks.fishingPlugin.service.BountyRewardService;
+import org.maks.fishingPlugin.data.BountyRewardRepo;
 import net.milkbowl.vault.economy.Economy;
 
 public final class FishingPlugin extends JavaPlugin {
@@ -77,6 +80,7 @@ public final class FishingPlugin extends JavaPlugin {
     private ProfileRepo profileRepo;
     private TreasureMapRepo treasureMapRepo;
     private LairLockRepo lairLockRepo;
+    private BountyRewardRepo bountyRewardRepo;
     private MirrorItemService mirrorItemService;
     private boolean hasEliteLootbox;
     private boolean hasWorldGuard;
@@ -113,6 +117,7 @@ public final class FishingPlugin extends JavaPlugin {
         this.profileRepo = new ProfileRepo(ds);
         this.treasureMapRepo = new TreasureMapRepo(ds);
         this.lairLockRepo = new LairLockRepo(ds);
+        this.bountyRewardRepo = new BountyRewardRepo(ds);
         try {
             lootRepo.init();
             mirrorItemRepo.init();
@@ -122,6 +127,7 @@ public final class FishingPlugin extends JavaPlugin {
             profileRepo.init();
             treasureMapRepo.init();
             lairLockRepo.init();
+            bountyRewardRepo.init();
         } catch (SQLException e) {
             getLogger().severe("Failed to initialize database tables: " + e.getMessage());
             getServer().getPluginManager().disablePlugin(this);
@@ -303,11 +309,13 @@ public final class FishingPlugin extends JavaPlugin {
         ShopMenu shopMenu = new ShopMenu(this, requiredPlayerLevel);
         QuestMenu questMenu = new QuestMenu(questService);
         AdminQuestEditorMenu adminQuestMenu = new AdminQuestEditorMenu(this, questService, questRepo);
+        BountyRewardService bountyRewardService = new BountyRewardService(this, bountyRewardRepo);
+        AdminBountyRewardMenu adminBountyMenu = new AdminBountyRewardMenu(this, bountyRewardService);
         AdminLootEditorMenu adminMenu = new AdminLootEditorMenu(this, lootService, lootRepo, paramRepo,
-            quickSellService, adminQuestMenu, mirrorItemRepo, mirrorItemService);
+            quickSellService, adminQuestMenu, mirrorItemRepo, mirrorItemService, adminBountyMenu);
         MainMenu mainMenu = new MainMenu(shopMenu, teleportService, requiredPlayerLevel);
         TreasureMapService treasureMapService = new TreasureMapService(this, economy, treasureMapRepo);
-        BountyService bountyService = new BountyService(this, teleportService, treasureMapService, lairLockRepo);
+        BountyService bountyService = new BountyService(this, teleportService, treasureMapService, lairLockRepo, bountyRewardService);
         PirateKingMenu pirateKingMenu = new PirateKingMenu(this, treasureMapService, bountyService);
         getCommand("fishing").setExecutor(new FishingCommand(mainMenu, adminMenu, requiredPlayerLevel));
         getCommand("fishsell").setExecutor(new QuickSellCommand(quickSellMenu));
@@ -321,6 +329,7 @@ public final class FishingPlugin extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(questMenu, this);
         Bukkit.getPluginManager().registerEvents(adminMenu, this);
         Bukkit.getPluginManager().registerEvents(adminQuestMenu, this);
+        Bukkit.getPluginManager().registerEvents(adminBountyMenu, this);
         Bukkit.getPluginManager().registerEvents(pirateKingMenu, this);
         Bukkit.getPluginManager().registerEvents(bountyService, this);
 

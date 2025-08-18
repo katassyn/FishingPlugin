@@ -32,6 +32,7 @@ import org.maks.fishingPlugin.service.LootService;
 import org.maks.fishingPlugin.service.MirrorItemService;
 import org.maks.fishingPlugin.service.QuickSellService;
 import org.maks.fishingPlugin.util.ItemSerialization;
+import org.maks.fishingPlugin.gui.AdminBountyRewardMenu;
 
 /** Inventory based admin editor for loot and scaling. */
 public class AdminLootEditorMenu implements Listener {
@@ -44,6 +45,7 @@ public class AdminLootEditorMenu implements Listener {
   private final AdminQuestEditorMenu questMenu;
   private final MirrorItemRepo mirrorItemRepo;
   private final MirrorItemService mirrorItemService;
+  private final AdminBountyRewardMenu bountyMenu;
 
   /** Pending chat editors mapped by player. */
   private final Map<UUID, Editor> editors = new HashMap<>();
@@ -54,7 +56,8 @@ public class AdminLootEditorMenu implements Listener {
 
   public AdminLootEditorMenu(JavaPlugin plugin, LootService lootService, LootRepo lootRepo,
       ParamRepo paramRepo, QuickSellService quickSellService, AdminQuestEditorMenu questMenu,
-      MirrorItemRepo mirrorItemRepo, MirrorItemService mirrorItemService) {
+      MirrorItemRepo mirrorItemRepo, MirrorItemService mirrorItemService,
+      AdminBountyRewardMenu bountyMenu) {
     this.plugin = plugin;
     this.lootService = lootService;
     this.lootRepo = lootRepo;
@@ -63,6 +66,7 @@ public class AdminLootEditorMenu implements Listener {
     this.questMenu = questMenu;
     this.mirrorItemRepo = mirrorItemRepo;
     this.mirrorItemService = mirrorItemService;
+    this.bountyMenu = bountyMenu;
   }
 
   enum Type {
@@ -100,6 +104,7 @@ public class AdminLootEditorMenu implements Listener {
     inv.setItem(18, button(Material.GLASS, "Add Mirror Item"));
     inv.setItem(20, button(Material.SUNFLOWER, "Edit Economy"));
     inv.setItem(22, button(Material.CHEST, "Edit Category Weights"));
+    inv.setItem(24, button(Material.DIAMOND_SWORD, "Edit Bounty Rewards"));
     return inv;
   }
 
@@ -666,6 +671,8 @@ public class AdminLootEditorMenu implements Listener {
           openEconomy(player);
         } else if (slot == 22) {
           openCatWeights(player);
+        } else if (slot == 24) {
+          bountyMenu.open(player);
         }
       }
       case ADD_ITEMS -> {
