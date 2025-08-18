@@ -17,6 +17,8 @@ import org.bukkit.boss.BossBar;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.Sound;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Monster;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
@@ -48,6 +50,7 @@ public class BountyService implements Listener {
   private final Map<UUID, Integer> barTasks = new HashMap<>();
   private final Map<UUID, Integer> timeoutTasks = new HashMap<>();
   private final Map<UUID, Map<String, Integer>> activeMobs = new HashMap<>();
+  private final Map<UUID, Location> spawnLocations = new HashMap<>();
   private final Random random = new Random();
   private static final Set<TreasureMapService.Lair> SHARED_LAIR_GROUP =
       EnumSet.of(TreasureMapService.Lair.INFERNAL, TreasureMapService.Lair.HELL,
@@ -296,6 +299,7 @@ public class BountyService implements Listener {
 
   private void spawnBosses(Player player, SpawnSpec spawn) {
     Location loc = player.getLocation();
+    spawnLocations.put(player.getUniqueId(), loc.clone());
     Map<String, Integer> counts = new HashMap<>();
     for (int i = 0; i < spawn.count(); i++) {
       if (spawn.bossPool().isEmpty()) break;
@@ -315,6 +319,16 @@ public class BountyService implements Listener {
     }
   }
 
+  private void clearMobs(UUID playerId) {
+    Location loc = spawnLocations.remove(playerId);
+    if (loc == null) return;
+    var world = loc.getWorld();
+    if (world == null) return;
+    for (Entity entity : world.getNearbyEntities(loc, 100, 100, 100, e -> e instanceof Monster)) {
+      entity.remove();
+    }
+  }
+
   private void timeout(UUID playerId) {
     release(playerId, msgTimeout, titleTimeout, titleTimeoutSub);
   }
@@ -322,6 +336,7 @@ public class BountyService implements Listener {
   private void success(UUID playerId) {
     cancelTasks(playerId);
     activeMobs.remove(playerId);
+    clearMobs(playerId);
     Player p = Bukkit.getPlayer(playerId);
     if (p == null || !p.isOnline()) {
       Bukkit.getScheduler().runTask(plugin, () -> release(playerId, msgSuccess, null, null));
@@ -355,6 +370,7 @@ public class BountyService implements Listener {
       freeLair(lair);
       cancelTasks(playerId);
       activeMobs.remove(playerId);
+      clearMobs(playerId);
       Player p = Bukkit.getPlayer(playerId);
       if (p != null && p.isOnline()) {
         if (!Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "spawn " + p.getName())) {
