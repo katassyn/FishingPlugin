@@ -370,13 +370,5 @@ public class TreasureMapService {
     return currencySymbol;
   }
 
-  // Debug helpers exposing expected unidentified map metadata
-  public String debugUnidentifiedName() {
-    return unidentifiedName;
-  }
-
-  public List<String> debugUnidentifiedLore() {
-    return unidentifiedLore;
-  }
 }
 

@@ -254,7 +254,6 @@ public class BountyService implements Listener {
           .replace("{x}", String.valueOf(loc.getBlockX()))
           .replace("{y}", String.valueOf(loc.getBlockY()))
           .replace("{z}", String.valueOf(loc.getBlockZ()));
-      plugin.getLogger().info("Executing MythicMobs spawn command: " + cmd);
 
       Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
     }

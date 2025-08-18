@@ -44,52 +44,6 @@ public class PirateKingMenu implements Listener {
         plugin.getConfig().getString("treasure_maps.messages.inserted_identified", "");
   }
 
-  private void debugItem(ItemStack item, String context) {
-    if (item == null) {
-      plugin.getLogger().info("[PirateKingMenu] " + context + " item=null");
-      return;
-    }
-    var state = mapService.getState(item);
-    var lair = mapService.getLair(item);
-    var id = mapService.getId(item);
-    ItemMeta meta = item.getItemMeta();
-    String name = meta != null && meta.hasDisplayName() ? meta.getDisplayName() : "null";
-    List<String> lore = meta != null ? meta.getLore() : null;
-    boolean unbreakable = meta != null && meta.isUnbreakable();
-    plugin
-        .getLogger()
-        .info(
-            "[PirateKingMenu] "
-                + context
-                + " type="
-                + item.getType()
-                + " name="
-                + name
-                + " lore="
-                + lore
-                + " unbreakable="
-                + unbreakable
-                + " state="
-                + state
-                + " lair="
-                + lair
-                + " id="
-                + id);
-  }
-
-  private void debugRejection(ItemStack item, String reason) {
-    debugItem(item, "rejected-cursor");
-    plugin
-        .getLogger()
-        .info(
-            "[PirateKingMenu] reason="
-                + reason
-                + " required-name="
-                + mapService.debugUnidentifiedName()
-                + " required-lore="
-                + mapService.debugUnidentifiedLore()
-                + " required-nbt=[map_state, map_id]");
-  }
   /** Open the Pirate King menu for a player. */
   public void open(Player player) {
     Inventory inv = createInventory();
@@ -180,7 +134,6 @@ public class PirateKingMenu implements Listener {
     inv.setItem(11, fill);
     inv.setItem(15, fill);
     ItemStack map = inv.getItem(13);
-    debugItem(map, "refresh-slot13");
     if (map == null || map.getType() == Material.AIR) {
       return;
     }
@@ -297,19 +250,13 @@ public class PirateKingMenu implements Listener {
 
     ItemStack cursor = event.getCursor();
     ItemStack current = inv.getItem(13);
-    if (cursor != null && cursor.getType() != Material.AIR) {
-      debugItem(cursor, "cursor-attempt");
-    }
 
     // placing item into slot 13
     if (cursor != null && cursor.getType() != Material.AIR) {
       if (!mapService.isUnidentified(cursor)
           && !mapService.isIdentified(cursor)
           && !mapService.isAsh(cursor)) {
-        var state = mapService.getState(cursor);
-        String reason = state == null ? "missing map_state" : "state=" + state;
         event.setCancelled(true);
-        debugRejection(cursor, reason);
         return;
       }
       if (current != null && current.getType() != Material.AIR) {
@@ -349,7 +296,6 @@ public class PirateKingMenu implements Listener {
     Inventory inv = event.getInventory();
     ItemStack item = inv.getItem(13);
     if (item != null && item.getType() != Material.AIR) {
-      debugItem(item, "close-return");
       Player player = (Player) event.getPlayer();
       var leftover = player.getInventory().addItem(item);
       for (ItemStack drop : leftover.values()) {
