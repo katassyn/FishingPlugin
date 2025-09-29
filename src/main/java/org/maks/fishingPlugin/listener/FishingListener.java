@@ -91,7 +91,7 @@ public class FishingListener implements Listener {
     int rodLevel = admin ? 300 : levelService.getLevel(player);
     LootEntry loot;
     try {
-      loot = admin ? lootService.rollAdmin() : lootService.roll(rodLevel);
+      loot = admin ? lootService.rollAdmin() : lootService.roll(rodLevel, player);
     } catch (IllegalStateException e) {
       return;
     }
@@ -130,7 +130,7 @@ public class FishingListener implements Listener {
 
   private ItemStack buildCraftItem(boolean algae, int tier, int amount) {
     Material mat = algae ? Material.HORN_CORAL : Material.TURTLE_EGG;
-    String name = (algae ? "Alga" : "Shiny Pearl");
+    String name = (algae ? "Algal" : "Shiny Pearl");
     ChatColor color = switch (tier) {
       case 1 -> ChatColor.BLUE;
       case 2 -> ChatColor.DARK_PURPLE;
@@ -138,8 +138,8 @@ public class FishingListener implements Listener {
     };
     String display = color + "[ " + roman(tier) + " ] " + name;
     String lore = algae
-        ? ChatColor.GRAY + "" + ChatColor.ITALIC + "Basic crafting material"
-        : ChatColor.GREEN + "" + ChatColor.ITALIC + "Rare crafting material";
+        ? "§7§oBasic crafting material"
+        : "§a§oRare crafting material";
     ItemStack item = new ItemStack(mat, amount);
     ItemMeta meta = item.getItemMeta();
     if (meta != null) {

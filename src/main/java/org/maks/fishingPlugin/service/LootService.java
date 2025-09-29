@@ -9,6 +9,9 @@ import org.maks.fishingPlugin.model.Category;
 import org.maks.fishingPlugin.model.LootEntry;
 import org.maks.fishingPlugin.model.ScaleConf;
 import org.maks.fishingPlugin.util.WeightedPicker;
+import org.bukkit.entity.Player;
+import org.bukkit.Bukkit;
+import me.clip.placeholderapi.PlaceholderAPI;
 
 /**
  * Rolls loot using weighted roulette without soft caps.
@@ -62,6 +65,13 @@ public class LootService {
    * Rolls a random loot entry based on rod level.
    */
   public LootEntry roll(int rodLevel) {
+    return roll(rodLevel, null);
+  }
+
+  /**
+   * Rolls a random loot entry based on rod level with pet bonuses.
+   */
+  public LootEntry roll(int rodLevel, Player player) {
     if (entries.isEmpty()) {
       throw new IllegalStateException("No loot entries registered");
     }
@@ -75,7 +85,7 @@ public class LootService {
     }
     Map<Category, Double> weights = new EnumMap<>(Category.class);
     for (Map.Entry<Category, List<LootEntry>> en : byCat.entrySet()) {
-      double w = effectiveCategoryWeight(en.getKey(), rodLevel);
+      double w = effectiveCategoryWeight(en.getKey(), rodLevel, player);
       if (w > 0) {
         weights.put(en.getKey(), w);
       }
@@ -125,6 +135,14 @@ public class LootService {
    * rod level after applying category scaling and level requirements.
    */
   private double effectiveCategoryWeight(Category cat, int rodLevel) {
+    return effectiveCategoryWeight(cat, rodLevel, null);
+  }
+
+  /**
+   * Calculates the effective weight for the given loot entry at the specified
+   * rod level after applying category scaling, level requirements, and pet bonuses.
+   */
+  private double effectiveCategoryWeight(Category cat, int rodLevel, Player player) {
     if ((cat == Category.RUNE || cat == Category.TREASURE_MAP) && rodLevel < 25) {
       return 0.0;
     }
@@ -133,7 +151,72 @@ public class LootService {
     }
     ScaleConf conf = scaling.get(cat);
     double base = baseCategoryWeights.getOrDefault(cat, 0.0);
-    return conf == null ? base : base * conf.mult(rodLevel);
+    double weight = conf == null ? base : base * conf.mult(rodLevel);
+
+    // Apply pet bonuses to category weights
+    if (player != null) {
+      weight = applyPetBonuses(cat, weight, player);
+    }
+
+    return weight;
+  }
+
+  /**
+   * Apply pet bonuses to category weights using weight-based increases
+   */
+  private double applyPetBonuses(Category category, double baseWeight, Player player) {
+    if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") == null) {
+      return baseWeight;
+    }
+
+    double petBonus = 0.0;
+
+    switch (category) {
+      case FISHERMAN_CHEST -> {
+        // CAT pet: 10% chance for fisherman chest
+        String chestBonus = PlaceholderAPI.setPlaceholders(player, "%petplugin_fisherman_chest_chance%");
+        try {
+          petBonus = Double.parseDouble(chestBonus);
+        } catch (NumberFormatException e) {
+          petBonus = 0.0;
+        }
+      }
+      case TREASURE -> {
+        // ELDER_GUARDIAN pet: 15% chance for ocean treasure
+        String treasureBonus = PlaceholderAPI.setPlaceholders(player, "%petplugin_ocean_treasure_chance%");
+        try {
+          petBonus = Double.parseDouble(treasureBonus);
+        } catch (NumberFormatException e) {
+          petBonus = 0.0;
+        }
+      }
+      case RUNE -> {
+        // VEX pet: 8% chance for rune
+        String runeBonus = PlaceholderAPI.setPlaceholders(player, "%petplugin_rune_chance%");
+        try {
+          petBonus = Double.parseDouble(runeBonus);
+        } catch (NumberFormatException e) {
+          petBonus = 0.0;
+        }
+      }
+      case TREASURE_MAP -> {
+        // SHULKER pet: 6% chance for treasure map
+        String mapBonus = PlaceholderAPI.setPlaceholders(player, "%petplugin_treasure_map_chance%");
+        try {
+          petBonus = Double.parseDouble(mapBonus);
+        } catch (NumberFormatException e) {
+          petBonus = 0.0;
+        }
+      }
+    }
+
+    // Apply weight-based bonus (increase weight by pet percentage)
+    if (petBonus > 0) {
+      double weightMultiplier = 1.0 + (petBonus / 100.0);
+      return baseWeight * weightMultiplier;
+    }
+
+    return baseWeight;
   }
 
   public double effectiveWeight(LootEntry e, int rodLevel) {

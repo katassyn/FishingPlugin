@@ -1,5 +1,7 @@
 package org.maks.fishingPlugin.command;
 
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -37,7 +39,8 @@ public class FishingCommand implements CommandExecutor {
       return true;
     }
     if (player.getLevel() < requiredLevel) {
-      player.sendMessage("You need level " + requiredLevel + " to use fishing features.");
+      player.sendMessage(Component.text("You must be at least level " + requiredLevel + " !")
+              .color(NamedTextColor.RED));
       return true;
     }
     mainMenu.open(player);

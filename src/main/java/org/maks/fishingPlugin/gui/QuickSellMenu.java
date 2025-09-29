@@ -15,6 +15,13 @@ import net.kyori.adventure.text.Component;
 import org.bukkit.ChatColor;
 
 import org.maks.fishingPlugin.service.QuickSellService;
+import org.maks.fishingPlugin.service.LootService;
+import org.maks.fishingPlugin.model.LootEntry;
+import org.maks.fishingPlugin.model.Category;
+import org.bukkit.NamespacedKey;
+import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.plugin.java.JavaPlugin;
 
 /**
  * Simple chest-style menu where players place fish to sell.
@@ -22,9 +29,13 @@ import org.maks.fishingPlugin.service.QuickSellService;
 public class QuickSellMenu implements Listener {
 
   private final QuickSellService quickSellService;
+  private final LootService lootService;
+  private final NamespacedKey keyKey;
 
-  public QuickSellMenu(QuickSellService quickSellService) {
+  public QuickSellMenu(QuickSellService quickSellService, LootService lootService, JavaPlugin plugin) {
     this.quickSellService = quickSellService;
+    this.lootService = lootService;
+    this.keyKey = new NamespacedKey(plugin, "loot-key");
   }
 
   private ItemStack button(Material mat, String name) {
@@ -52,6 +63,18 @@ public class QuickSellMenu implements Listener {
     return inv;
   }
 
+  /** Check if an item is a fish (can be sold) */
+  private boolean isFish(ItemStack item) {
+    if (item == null) return false;
+    ItemMeta meta = item.getItemMeta();
+    if (meta == null) return false;
+    PersistentDataContainer pdc = meta.getPersistentDataContainer();
+    String key = pdc.get(keyKey, PersistentDataType.STRING);
+    if (key == null) return false;
+    LootEntry entry = lootService.getEntry(key);
+    return entry != null && entry.category() == Category.FISH;
+  }
+
   /** Open the quick sell menu. */
   public void open(Player player) {
     player.openInventory(createInventory());
@@ -63,6 +86,18 @@ public class QuickSellMenu implements Listener {
       return;
     }
     int slot = event.getRawSlot();
+    Player player = (Player) event.getWhoClicked();
+
+    // Handle placing items in the selling area
+    if (slot >= 0 && slot < 45) {
+      ItemStack cursor = event.getCursor();
+      if (cursor != null && cursor.getType() != Material.AIR && !isFish(cursor)) {
+        event.setCancelled(true);
+        player.sendMessage(ChatColor.RED + "You can only sell fish here!");
+        return;
+      }
+    }
+
     if (slot == 49) {
       event.setCancelled(true);
       Inventory inv = event.getInventory();
@@ -70,14 +105,16 @@ public class QuickSellMenu implements Listener {
       for (int i = 0; i < 45; i++) {
         items[i] = inv.getItem(i);
       }
-      Player player = (Player) event.getWhoClicked();
       double amount = quickSellService.sellItems(player, items);
       if (amount > 0) {
         player.sendMessage(ChatColor.GREEN + "Sold fish for " + ChatColor.YELLOW
             + quickSellService.currencySymbol() + String.format("%.2f", amount));
 
         for (int i = 0; i < 45; i++) {
-          inv.setItem(i, null);
+          ItemStack item = inv.getItem(i);
+          if (item != null && isFish(item)) {
+            inv.setItem(i, null);
+          }
         }
       } else {
         player.sendMessage("No fish sold");

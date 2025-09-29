@@ -305,7 +305,7 @@ public final class FishingPlugin extends JavaPlugin {
             antiCheatService.deserialize(p.getUniqueId(), levelService.getLastQteSample(p));
         });
 
-        QuickSellMenu quickSellMenu = new QuickSellMenu(quickSellService);
+        QuickSellMenu quickSellMenu = new QuickSellMenu(quickSellService, lootService, this);
         ShopMenu shopMenu = new ShopMenu(this, requiredPlayerLevel);
         QuestMenu questMenu = new QuestMenu(questService);
         AdminQuestEditorMenu adminQuestMenu = new AdminQuestEditorMenu(this, questService, questRepo);

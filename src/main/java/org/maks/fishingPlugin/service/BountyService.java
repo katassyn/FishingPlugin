@@ -283,9 +283,10 @@ public class BountyService implements Listener {
         plugin.getLogger().warning("Failed to release lair: " + e.getMessage());
       }
     }
-    if (!msgLairReleased.isEmpty()) {
-      Bukkit.broadcastMessage(color(msgLairReleased.replace("{lair}", mapService.lairDisplay(lair))));
-    }
+    // Commented out to hide lair released message from all chat
+    // if (!msgLairReleased.isEmpty()) {
+    //   Bukkit.broadcastMessage(color(msgLairReleased.replace("{lair}", mapService.lairDisplay(lair))));
+    // }
   }
 
   private void cancelTasks(UUID playerId) {
