@@ -89,6 +89,24 @@ public class Awarder {
       Bukkit.broadcastMessage(prefix + "caught a rune!");
     } else if (loot.category() == Category.TREASURE_MAP) {
       Bukkit.broadcastMessage(prefix + "found a treasure map!");
+
+      // Fire TreasureMapFindEvent for QuestSystem integration
+      try {
+        Class<?> listenerClass = Class.forName("org.maks.questsystem.listeners.FishingListener");
+        Class<?> eventClass = null;
+        for (Class<?> innerClass : listenerClass.getDeclaredClasses()) {
+          if (innerClass.getSimpleName().equals("TreasureMapFindEvent")) {
+            eventClass = innerClass;
+            break;
+          }
+        }
+        if (eventClass != null) {
+          Object questEvent = eventClass.getConstructor(Player.class).newInstance(player);
+          Bukkit.getPluginManager().callEvent((org.bukkit.event.Event) questEvent);
+        }
+      } catch (Exception ignored) {
+        // QuestSystem might not be loaded
+      }
     } else if (loot.category() == Category.TREASURE) {
       Bukkit.broadcastMessage(prefix + "found an oceanic treasure!");
     }

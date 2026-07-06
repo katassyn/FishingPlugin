@@ -20,7 +20,7 @@ anti_cheat:
   drop_multiplier: 0.5
 
 # Chance to receive crafting materials like algae or pearls in addition to the main catch.
-craft_drop_chance: 0.05
+craft_drop_chance: 0.10
 
 economy:
   currency_symbol: "$"
@@ -67,10 +67,10 @@ warps:
     command: "warp kraken_lair %player%"
 
 category_weights:
-  FISH: 9520
-  FISHERMAN_CHEST: 300
-  RUNE: 80
-  TREASURE_MAP: 80
+  FISH: 9642
+  FISHERMAN_CHEST: 250
+  RUNE: 40
+  TREASURE_MAP: 40
   TREASURE: 8
 
 category_scaling:

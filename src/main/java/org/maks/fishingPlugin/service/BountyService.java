@@ -348,6 +348,24 @@ public class BountyService implements Listener {
     String lairName = lair != null ? mapService.lairDisplay(lair) : "";
     if (lair != null) {
       rewardService.give(p, lair);
+
+      // Fire BountyCompleteEvent for QuestSystem integration
+      try {
+        Class<?> listenerClass = Class.forName("org.maks.questsystem.listeners.FishingListener");
+        Class<?> eventClass = null;
+        for (Class<?> innerClass : listenerClass.getDeclaredClasses()) {
+          if (innerClass.getSimpleName().equals("BountyCompleteEvent")) {
+            eventClass = innerClass;
+            break;
+          }
+        }
+        if (eventClass != null) {
+          Object event = eventClass.getConstructor(Player.class).newInstance(p);
+          Bukkit.getPluginManager().callEvent((org.bukkit.event.Event) event);
+        }
+      } catch (Exception ignored) {
+        // QuestSystem might not be loaded
+      }
     }
     final int[] remaining = {SUCCESS_COUNTDOWN_SECONDS};
     final int[] taskId = new int[1];

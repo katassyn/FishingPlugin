@@ -21,6 +21,7 @@ import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.ChatColor;
 import org.maks.fishingPlugin.service.RodService;
+import org.maks.fishingPlugin.integration.IngredientPouchIntegration;
 
 
 /**
@@ -103,6 +104,29 @@ public class FishingListener implements Listener {
     }
     Bukkit.getPluginManager().callEvent(
         new FishRewardEvent(player, loot, res.item(), res.weightG()));
+
+    // Fire FishCatchEvent for QuestSystem integration
+    if (res.item() != null) {
+      try {
+        Class<?> listenerClass = Class.forName("org.maks.questsystem.listeners.FishingListener");
+        Class<?> eventClass = null;
+        for (Class<?> innerClass : listenerClass.getDeclaredClasses()) {
+          if (innerClass.getSimpleName().equals("FishCatchEvent")) {
+            eventClass = innerClass;
+            break;
+          }
+        }
+        if (eventClass != null) {
+          String quality = loot.category() != null ? loot.category().name() : "C";
+          Object questEvent = eventClass.getConstructor(Player.class, String.class)
+              .newInstance(player, quality);
+          Bukkit.getPluginManager().callEvent((org.bukkit.event.Event) questEvent);
+        }
+      } catch (Exception ignored) {
+        // QuestSystem might not be loaded
+      }
+    }
+
     if (res.item() != null) {
       maybeGiveCraft(player);
     }
@@ -122,10 +146,13 @@ public class FishingListener implements Listener {
     boolean algae = ThreadLocalRandom.current().nextBoolean();
     double tierRoll = ThreadLocalRandom.current().nextDouble();
     int tier = tierRoll < 0.4 ? 1 : tierRoll < 0.8 ? 2 : 3;
-    int amount = algae ? ThreadLocalRandom.current().nextInt(1, 4)
-        : ThreadLocalRandom.current().nextInt(1, 3);
+    int amount = algae ? ThreadLocalRandom.current().nextInt(2, 6)
+        : ThreadLocalRandom.current().nextInt(2, 5);
     ItemStack item = buildCraftItem(algae, tier, amount);
-    player.getInventory().addItem(item);
+    boolean stored = IngredientPouchIntegration.tryStore(player, item);
+    if (!stored) {
+      player.getInventory().addItem(item);
+    }
   }
 
   private ItemStack buildCraftItem(boolean algae, int tier, int amount) {

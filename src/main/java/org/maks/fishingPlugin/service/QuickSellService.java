@@ -80,6 +80,7 @@ public class QuickSellService {
       economy.depositPlayer(player, payout);
       levelService.addQsEarned(player, Math.round(payout));
       questService.onQuickSell(player, payout);
+      fireFishSellEvent(player, (int) payout);
       return payout;
     }
     return 0;
@@ -120,9 +121,30 @@ public class QuickSellService {
       economy.depositPlayer(player, payout);
       levelService.addQsEarned(player, Math.round(payout));
       questService.onQuickSell(player, payout);
+      fireFishSellEvent(player, (int) payout);
       return payout;
     }
     return 0;
+  }
+
+  private void fireFishSellEvent(Player player, int moneyEarned) {
+    try {
+      Class<?> listenerClass = Class.forName("org.maks.questsystem.listeners.FishingListener");
+      Class<?> eventClass = null;
+      for (Class<?> innerClass : listenerClass.getDeclaredClasses()) {
+        if (innerClass.getSimpleName().equals("FishSellEvent")) {
+          eventClass = innerClass;
+          break;
+        }
+      }
+      if (eventClass != null) {
+        Object event = eventClass.getConstructor(org.bukkit.entity.Player.class, int.class)
+            .newInstance(player, moneyEarned);
+        org.bukkit.Bukkit.getPluginManager().callEvent((org.bukkit.event.Event) event);
+      }
+    } catch (Exception ignored) {
+      // QuestSystem might not be loaded
+    }
   }
 
   public String currencySymbol() {

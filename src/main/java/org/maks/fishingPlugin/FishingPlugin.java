@@ -47,6 +47,7 @@ import org.maks.fishingPlugin.gui.AdminLootEditorMenu;
 import org.maks.fishingPlugin.gui.AdminQuestEditorMenu;
 import org.maks.fishingPlugin.gui.PirateKingMenu;
 import org.maks.fishingPlugin.gui.AdminBountyRewardMenu;
+import org.maks.fishingPlugin.integration.IngredientPouchIntegration;
 import org.maks.fishingPlugin.command.QuickSellCommand;
 import org.maks.fishingPlugin.command.GiveRodCommand;
 import org.maks.fishingPlugin.command.AdminRodCommand;
@@ -90,6 +91,7 @@ public final class FishingPlugin extends JavaPlugin {
     public void onEnable() {
         saveDefaultConfig();
         var pm = getServer().getPluginManager();
+        IngredientPouchIntegration.initialize(this);
         this.hasEliteLootbox = pm.getPlugin("EliteLootbox") != null;
         this.hasWorldGuard = pm.getPlugin("WorldGuard") != null;
         this.hasCitizens = pm.getPlugin("Citizens") != null;
